@@ -56,8 +56,16 @@ def leave_room_api(room_id: int):
 @login_required
 def list_members():
     members = User.query.filter_by(role="member").order_by(User.name.asc()).all()
+    from ..services.socketio import online_users
+    online_user_ids = set(online_users.keys())
     return jsonify([
-        {"id": m.id, "name": m.name, "email": m.email, "created_at": m.created_at.isoformat()}
+        {
+            "id": m.id,
+            "name": m.name,
+            "email": m.email,
+            "created_at": m.created_at.isoformat(),
+            "online": m.id in online_user_ids,
+        }
         for m in members
     ])
 

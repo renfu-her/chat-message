@@ -104,7 +104,6 @@ def register():
 def update_profile():
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
-    email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
     
     if not name:
@@ -113,11 +112,6 @@ def update_profile():
     try:
         user = current_user
         user.name = name
-        
-        if email and email != user.email:
-            if User.query.filter(User.id != user.id, User.email == email).first():
-                return jsonify({"error": "Email 已被使用"}), 409
-            user.email = email
         
         if password:
             user.set_password(password)

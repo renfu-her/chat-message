@@ -13,7 +13,8 @@
           </div>
           <div>
             <label for="profile-email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="profile-email" placeholder="name@example.com" required />
+            <input type="email" class="form-control" id="profile-email" placeholder="name@example.com" readonly />
+            <small class="text-muted">Email 無法更改</small>
           </div>
           <div>
             <label for="profile-password" class="form-label">新密碼（留空則不更新）</label>
@@ -54,7 +55,6 @@
     $('#profile-form').on('submit', async function(e){
       e.preventDefault();
       const name = $('#profile-name').val();
-      const email = $('#profile-email').val();
       const password = $('#profile-password').val();
       $('#profile-msg').text('').removeClass('alert alert-danger alert-success');
       
@@ -62,7 +62,7 @@
         const res = await fetch('/auth/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password: password || undefined })
+          body: JSON.stringify({ name, password: password || undefined })
         });
         let data = {};
         try {

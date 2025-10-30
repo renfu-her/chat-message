@@ -7,6 +7,8 @@ from ..models.message import Message
 
 
 ROOM_KEY_PREFIX = "room:"
+# Track online users: {user_id: {name, email, ...}}
+online_users = {}
 
 
 def _room_key(room_id: int) -> str:
@@ -18,10 +20,28 @@ class ChatNamespace(Namespace):
         # Session-based auth; reject unauthenticated
         if not current_user.is_authenticated:
             return False
+        # Add to online users
+        online_users[current_user.id] = {
+            "id": current_user.id,
+            "name": current_user.name,
+            "email": current_user.email,
+            "role": current_user.role,
+        }
+        # Broadcast user online status
+        emit("user_online", {"user_id": current_user.id, "name": current_user.name}, broadcast=True, include_self=False)
+        # Send current online users list to the newly connected user
+        emit("online_users", {"users": list(online_users.values())})
         emit("ready", {"user_id": current_user.id, "role": current_user.role})
+        return True
 
     def on_disconnect(self):
-        # No-op; clients will rejoin rooms as needed
+        # Remove from online users
+        if current_user.is_authenticated:
+            user_id = current_user.id
+            if user_id in online_users:
+                del online_users[user_id]
+            # Broadcast user offline status
+            emit("user_offline", {"user_id": user_id}, broadcast=True)
         return
 
     def on_join_room(self, data):

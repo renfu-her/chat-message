@@ -41,6 +41,7 @@
     const $members = $('#members');
     let currentRoomId = null;
     let socket = null;
+    let onlineUserIds = new Set(); // Track online user IDs
 
     function append(msg){
       const $div = $('<div/>').text(msg);
@@ -54,18 +55,43 @@
       return await res.json();
     }
 
+    function maskEmail(email){
+      if(!email) return '';
+      const parts = email.split('@');
+      if(parts.length !== 2) return email;
+      const local = parts[0];
+      return local + '@*****';
+    }
+
     async function loadMembers(){
       try {
         const list = await fetchJSON('/members');
-        $members.empty();
-        list.forEach(m => {
-          const $li = $('<li/>').addClass('list-group-item');
-          $li.text(m.name || m.email);
-          $members.append($li);
-        });
+        renderMembers(list);
       } catch(e){
         // Silently fail if not logged in
       }
+    }
+
+    function renderMembers(list){
+      $members.empty();
+      list.forEach(m => {
+        const $li = $('<li/>').addClass('list-group-item d-flex align-items-center');
+        const isOnline = m.online || onlineUserIds.has(m.id);
+        if(isOnline){
+          const $dot = $('<span/>').css({
+            'width': '10px',
+            'height': '10px',
+            'background': '#28a745',
+            'border-radius': '50%',
+            'display': 'inline-block',
+            'margin-right': '8px'
+          });
+          $li.append($dot);
+        }
+        const displayText = m.name ? `${m.name} (${maskEmail(m.email)})` : maskEmail(m.email);
+        $li.append($('<span/>').text(displayText));
+        $members.append($li);
+      });
     }
 
     async function loadRooms(){
@@ -99,7 +125,27 @@
     function ensureSocket(){
       if(socket) return;
       socket = io('/chat');
-      socket.on('ready', (data)=>{ $meta.text(`Connected as ${data.user_id} (${data.role})`); });
+      socket.on('ready', (data)=>{ 
+        $meta.text(`Connected as ${data.user_id} (${data.role})`);
+        // Reload members to get online status
+        loadMembers();
+      });
+      socket.on('online_users', (data)=>{
+        // Update online users set
+        onlineUserIds.clear();
+        if(data.users){
+          data.users.forEach(u => onlineUserIds.add(u.id));
+        }
+        loadMembers();
+      });
+      socket.on('user_online', (data)=>{
+        onlineUserIds.add(data.user_id);
+        loadMembers();
+      });
+      socket.on('user_offline', (data)=>{
+        onlineUserIds.delete(data.user_id);
+        loadMembers();
+      });
       socket.on('new_message', (m)=>{ if(String(m.room_id) === String(currentRoomId)) append(`${m.author_name || m.user_id}: ${m.content}`); });
       socket.on('room_deleted', (data)=>{
         if(String(data.room_id) === String(currentRoomId)){
@@ -128,6 +174,8 @@
 
     loadRooms();
     loadMembers();
+    // Auto-connect Socket.IO if logged in to track online status
+    ensureSocket();
   });
 </script>
 {% endblock %}
