@@ -89,9 +89,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, password })
         });
-        const data = await res.json();
+        let data = {};
+        try { data = await res.json(); } catch(_) {}
         if(!res.ok || !data.ok){
-          throw new Error((data && data.error) || 'Register failed');
+          throw new Error((data && (data.error || data.detail)) || 'Register failed');
         }
         window.location.href = '/';
       } catch (err){

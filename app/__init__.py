@@ -25,6 +25,18 @@ def create_app() -> Flask:
 
     with app.app_context():
         db.create_all()
+        # Ensure new columns are present if DB pre-existed (simple auto-migration)
+        try:
+            from sqlalchemy import inspect, text
+
+            inspector = inspect(db.engine)
+            user_columns = {c["name"] for c in inspector.get_columns("users")}
+            if "name" not in user_columns:
+                db.session.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(120) NULL"))
+                db.session.commit()
+        except Exception:
+            # Soft-fail; continue startup and allow manual migration if needed
+            pass
         # Seed admin user and a default room if not present
         if not User.query.filter_by(email="admin@example.com").first():
             admin = User(email="admin@example.com", role="admin")

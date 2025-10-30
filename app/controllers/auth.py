@@ -59,11 +59,27 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email already registered"}), 409
 
-    user = User(email=email, role="member", name=name)
-    user.set_password(password)
-    db.session.add(user)
-    db.session.commit()
-    login_user(user)
-    return jsonify({"ok": True, "user": {"id": user.id, "email": user.email, "name": user.name, "role": user.role}}), 201
+    try:
+        user = User(email=email, role="member", name=name)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.flush()  # assign primary key
+        new_id = user.id
+        db.session.commit()
+        # verify persisted
+        persisted = User.query.get(new_id)
+        if not persisted:
+            raise RuntimeError("User not persisted after commit")
+        login_user(user)
+        return (
+            jsonify({
+                "ok": True,
+                "user": {"id": user.id, "email": user.email, "name": user.name, "role": user.role},
+            }),
+            201,
+        )
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Register failed", "detail": str(e)}), 500
 
 

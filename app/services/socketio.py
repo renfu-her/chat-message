@@ -46,6 +46,7 @@ class ChatNamespace(Namespace):
             "id": msg.id,
             "room_id": room_id,
             "user_id": current_user.id,
+            "author_name": getattr(current_user, "name", None),
             "content": msg.content,
             "created_at": msg.created_at.isoformat(),
         }

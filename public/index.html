@@ -75,14 +75,14 @@
     async function loadMessages(roomId){
       const msgs = await fetchJSON(`/rooms/${roomId}/messages?limit=50`);
       $chat.empty();
-      msgs.forEach(m => append(`${m.user_id}: ${m.content}`));
+      msgs.forEach(m => append(`${m.author_name || m.user_id}: ${m.content}`));
     }
 
     function ensureSocket(){
       if(socket) return;
       socket = io('/chat');
       socket.on('ready', (data)=>{ $meta.text(`Connected as ${data.user_id} (${data.role})`); });
-      socket.on('new_message', (m)=>{ if(String(m.room_id) === String(currentRoomId)) append(`${m.user_id}: ${m.content}`); });
+      socket.on('new_message', (m)=>{ if(String(m.room_id) === String(currentRoomId)) append(`${m.author_name || m.user_id}: ${m.content}`); });
       socket.on('room_deleted', (data)=>{
         if(String(data.room_id) === String(currentRoomId)){
           append('Room was deleted by admin.');

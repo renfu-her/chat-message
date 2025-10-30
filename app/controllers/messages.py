@@ -22,16 +22,13 @@ def get_messages(room_id: int):
             query = query.filter(Message.created_at < before_dt)
         except ValueError:
             pass
-    msgs = (
-        query.order_by(Message.created_at.desc())
-        .limit(limit)
-        .all()
-    )
+    msgs = query.order_by(Message.created_at.desc()).limit(limit).all()
     return jsonify([
         {
             "id": m.id,
             "room_id": m.room_id,
             "user_id": m.user_id,
+            "author_name": getattr(m.author, "name", None),
             "content": m.content,
             "created_at": m.created_at.isoformat(),
         }
