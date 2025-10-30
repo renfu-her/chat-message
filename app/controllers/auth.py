@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy.exc import IntegrityError
 from ..extensions import db
 from ..models.user import User
 
@@ -57,27 +58,32 @@ def register():
     if not email or not password or not name:
         return jsonify({"error": "Name, email and password required"}), 400
     if User.query.filter_by(email=email).first():
-        return jsonify({"error": "Email already registered"}), 409
+        return jsonify({"error": "Email 重覆"}), 409
 
     try:
         user = User(email=email, role="member", name=name)
         user.set_password(password)
         db.session.add(user)
-        db.session.flush()  # assign primary key
-        new_id = user.id
         db.session.commit()
-        # verify persisted
-        persisted = User.query.get(new_id)
+        persisted = User.query.filter_by(email=email).first()
         if not persisted:
             raise RuntimeError("User not persisted after commit")
-        login_user(user)
+        login_user(persisted)
         return (
             jsonify({
                 "ok": True,
-                "user": {"id": user.id, "email": user.email, "name": user.name, "role": user.role},
+                "user": {
+                    "id": persisted.id,
+                    "email": persisted.email,
+                    "name": persisted.name,
+                    "role": persisted.role,
+                },
             }),
             201,
         )
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "Email 重覆"}), 409
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Register failed", "detail": str(e)}), 500

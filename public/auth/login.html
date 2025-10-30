@@ -54,6 +54,9 @@
   
 </div>
 
+{% endblock %}
+{% block scripts %}
+{{ super() }}
 <script>
   $(function(){
     $('#login-form').on('submit', async function(e){

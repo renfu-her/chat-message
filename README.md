@@ -26,6 +26,12 @@ python wsgi.py
 - Visit http://localhost:5000/
 - Login via API: `POST /auth/login` with `{ "email":"admin@example.com", "password":"admin123" }`
 
+5. (Optional) Seed demo data via console
+```bash
+python scripts/seed_demo.py
+```
+This creates example member accounts (`alice@example.com`, `bob@example.com`) with sample messages.
+
 ## API
 - POST `/auth/login`, POST `/auth/logout`, GET `/auth/me`
 - GET `/rooms`, POST `/rooms/<id>/join`, POST `/rooms/<id>/leave`
