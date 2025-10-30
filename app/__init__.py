@@ -37,6 +37,11 @@ def create_app() -> Flask:
             if "image" not in user_columns:
                 db.session.execute(text("ALTER TABLE users ADD COLUMN image VARCHAR(255) NULL"))
                 db.session.commit()
+            # Check rooms table
+            room_columns = {c["name"] for c in inspector.get_columns("rooms")}
+            if "is_active" not in room_columns:
+                db.session.execute(text("ALTER TABLE rooms ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE"))
+                db.session.commit()
         except Exception:
             # Soft-fail; continue startup and allow manual migration if needed
             pass

@@ -15,9 +15,32 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-3. Environment (optional)
-- Create `.env` with `SECRET_KEY=your-secret`
-- To override DB URL: `DATABASE_URL=mysql+pymysql://root:@localhost/chat-python?charset=utf8mb4`
+3. Environment Configuration
+Create `.env` file in project root:
+```bash
+# Flask Secret Key
+SECRET_KEY=your-secret-key-here
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=chat-python
+
+# Optional: Override DATABASE_URL directly (takes precedence over above DB_* vars)
+# DATABASE_URL=mysql+pymysql://root:@localhost/chat-python?charset=utf8mb4
+
+# Session Security (for production)
+SESSION_COOKIE_SECURE=false
+```
+
+If `.env` file is not provided, defaults will be used:
+- DB_HOST=localhost
+- DB_PORT=3306
+- DB_USER=root
+- DB_PASSWORD=(empty)
+- DB_NAME=chat-python
 
 4. Run
 ```bash
