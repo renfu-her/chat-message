@@ -83,6 +83,15 @@
       socket = io('/chat');
       socket.on('ready', (data)=>{ $meta.text(`Connected as ${data.user_id} (${data.role})`); });
       socket.on('new_message', (m)=>{ if(String(m.room_id) === String(currentRoomId)) append(`${m.user_id}: ${m.content}`); });
+      socket.on('room_deleted', (data)=>{
+        if(String(data.room_id) === String(currentRoomId)){
+          append('Room was deleted by admin.');
+          currentRoomId = null;
+          $title.text('Select a room');
+        }
+        // Refresh rooms list
+        loadRooms();
+      });
     }
 
     function joinSocketRoom(roomId){

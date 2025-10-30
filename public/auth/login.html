@@ -1,0 +1,104 @@
+{% extends "app.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane" type="button" role="tab">Login</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-pane" type="button" role="tab">Register</button>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="login-pane" role="tabpanel" aria-labelledby="login-tab" tabindex="0">
+            <form id="login-form" class="vstack gap-3">
+              <div>
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" placeholder="name@example.com" required />
+              </div>
+              <div>
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" placeholder="••••••••" required />
+              </div>
+              <button type="submit" class="btn btn-primary">Login</button>
+              <div id="login-msg" class="text-danger small"></div>
+            </form>
+          </div>
+          <div class="tab-pane fade" id="register-pane" role="tabpanel" aria-labelledby="register-tab" tabindex="0">
+            <form id="register-form" class="vstack gap-3">
+              <div>
+                <label for="reg-name" class="form-label">Name</label>
+                <input type="text" class="form-control" id="reg-name" placeholder="Your name" required />
+              </div>
+              <div>
+                <label for="reg-email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="reg-email" placeholder="name@example.com" required />
+              </div>
+              <div>
+                <label for="reg-password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="reg-password" placeholder="••••••••" required />
+              </div>
+              <button type="submit" class="btn btn-success">Register</button>
+              <div id="register-msg" class="text-danger small"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 mt-3 text-center text-muted">Use admin@example.com / admin123 for admin login.</div>
+  
+</div>
+
+<script>
+  $(function(){
+    $('#login-form').on('submit', async function(e){
+      e.preventDefault();
+      const email = $('#email').val();
+      const password = $('#password').val();
+      $('#login-msg').text('');
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if(!res.ok || !data.ok){
+          throw new Error((data && data.error) || 'Login failed');
+        }
+        window.location.href = '/';
+      } catch (err){
+        $('#login-msg').text(err.message || 'Login failed');
+      }
+    });
+
+    $('#register-form').on('submit', async function(e){
+      e.preventDefault();
+      const name = $('#reg-name').val();
+      const email = $('#reg-email').val();
+      const password = $('#reg-password').val();
+      $('#register-msg').text('');
+      try {
+        const res = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+        if(!res.ok || !data.ok){
+          throw new Error((data && data.error) || 'Register failed');
+        }
+        window.location.href = '/';
+      } catch (err){
+        $('#register-msg').text(err.message || 'Register failed');
+      }
+    });
+  });
+  </script>
+{% endblock %}
+

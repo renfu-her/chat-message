@@ -32,9 +32,11 @@ def create_app() -> Flask:
             db.session.add(admin)
             db.session.commit()
         admin = User.query.filter_by(email="admin@example.com").first()
-        if admin and not Room.query.filter_by(name="general").first():
-            room = Room(name="general", created_by=admin.id)
-            db.session.add(room)
+        if admin:
+            default_rooms = ["測試 1 Room", "測試 2 Room", "測試 3 Room"]
+            for rn in default_rooms:
+                if not Room.query.filter_by(name=rn).first():
+                    db.session.add(Room(name=rn, created_by=admin.id))
             db.session.commit()
 
     return app

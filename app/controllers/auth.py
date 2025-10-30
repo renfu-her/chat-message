@@ -1,10 +1,14 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from flask_login import login_user, logout_user, login_required, current_user
 from ..extensions import db
 from ..models.user import User
 
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+@bp.get("/login")
+def login_view():
+    return render_template("auth/login.html")
+
 
 
 @bp.post("/login")
@@ -41,5 +45,25 @@ def me():
             "user": {"id": current_user.id, "email": current_user.email, "role": current_user.role},
         }
     )
+
+
+@bp.post("/register")
+def register():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    name = (data.get("name") or "").strip()
+
+    if not email or not password or not name:
+        return jsonify({"error": "Name, email and password required"}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "Email already registered"}), 409
+
+    user = User(email=email, role="member", name=name)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    login_user(user)
+    return jsonify({"ok": True, "user": {"id": user.id, "email": user.email, "name": user.name, "role": user.role}}), 201
 
 

@@ -7,7 +7,7 @@ from flask_socketio import SocketIO
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-socketio = SocketIO(async_mode="eventlet", cors_allowed_origins="*")
+socketio = SocketIO(async_mode="threading", cors_allowed_origins="*")
 
 
 def init_extensions(app):

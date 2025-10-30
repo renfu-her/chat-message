@@ -4,6 +4,8 @@ from flask_login import login_required, current_user
 from ..extensions import db
 from ..models.room import Room
 from ..models.membership import RoomMembership
+from ..extensions import socketio
+from ..services.socketio import _room_key
 
 
 bp = Blueprint("rooms", __name__)
@@ -92,8 +94,14 @@ def admin_delete_room(room_id: int):
     if err:
         return err
     room = Room.query.get_or_404(room_id)
+    # Emit deletion event to clients in this room before closing
+    rk = _room_key(room_id)
+    socketio.emit("room_deleted", {"room_id": room_id}, room=rk, namespace="/chat")
+    # Delete from DB
     db.session.delete(room)
     db.session.commit()
-    return jsonify({"ok": True})
+    # Force clients out of the room on server side
+    socketio.close_room(rk, namespace="/chat")
+    return jsonify({"ok": True, "room_deleted": room_id})
 
 
