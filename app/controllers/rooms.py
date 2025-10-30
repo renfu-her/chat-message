@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from ..extensions import db
 from ..models.room import Room
 from ..models.membership import RoomMembership
+from ..models.user import User
 from ..extensions import socketio
 from ..services.socketio import _room_key
 
@@ -49,6 +50,16 @@ def leave_room_api(room_id: int):
         db.session.delete(m)
         db.session.commit()
     return jsonify({"ok": True, "left": True})
+
+
+@bp.get("/members")
+@login_required
+def list_members():
+    members = User.query.filter_by(role="member").order_by(User.name.asc()).all()
+    return jsonify([
+        {"id": m.id, "name": m.name, "email": m.email, "created_at": m.created_at.isoformat()}
+        for m in members
+    ])
 
 
 # Admin endpoints

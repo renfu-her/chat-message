@@ -22,7 +22,8 @@
     </div>
   </div>
   <div class="col-3">
-    <div class="alert alert-info">Login via POST /auth/login to enable chats.</div>
+    <h5 class="mb-3">Members</h5>
+    <ul id="members" class="list-group"></ul>
   </div>
 </div>
 
@@ -37,6 +38,7 @@
     const $form = $('#msg-form');
     const $input = $('#msg-input');
     const $title = $('#room-title');
+    const $members = $('#members');
     let currentRoomId = null;
     let socket = null;
 
@@ -50,6 +52,20 @@
       const res = await fetch(url, Object.assign({headers:{'Content-Type':'application/json'}}, opts));
       if(!res.ok) throw new Error('Request failed');
       return await res.json();
+    }
+
+    async function loadMembers(){
+      try {
+        const list = await fetchJSON('/members');
+        $members.empty();
+        list.forEach(m => {
+          const $li = $('<li/>').addClass('list-group-item');
+          $li.text(m.name || m.email);
+          $members.append($li);
+        });
+      } catch(e){
+        // Silently fail if not logged in
+      }
     }
 
     async function loadRooms(){
@@ -111,6 +127,7 @@
     });
 
     loadRooms();
+    loadMembers();
   });
 </script>
 {% endblock %}
