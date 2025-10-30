@@ -1,0 +1,97 @@
+{% extends "app.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="h4 mb-3">個人資料</h1>
+        <form id="profile-form" class="vstack gap-3">
+          <div>
+            <label for="profile-name" class="form-label">姓名</label>
+            <input type="text" class="form-control" id="profile-name" placeholder="Your name" required />
+          </div>
+          <div>
+            <label for="profile-email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="profile-email" placeholder="name@example.com" required />
+          </div>
+          <div>
+            <label for="profile-password" class="form-label">新密碼（留空則不更新）</label>
+            <input type="password" class="form-control" id="profile-password" placeholder="••••••••" />
+            <small class="text-muted">如要更新密碼請輸入新密碼，否則留空</small>
+          </div>
+          <button type="submit" class="btn btn-primary">更新</button>
+          <div id="profile-msg"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  $(function(){
+    let userData = null;
+    
+    async function loadProfile(){
+      try {
+        const res = await fetch('/auth/me');
+        const data = await res.json();
+        if(data.authenticated && data.user){
+          userData = data.user;
+          $('#profile-name').val(data.user.name || '');
+          $('#profile-email').val(data.user.email || '');
+        } else {
+          window.location.href = '/auth/login';
+        }
+      } catch(e){
+        window.location.href = '/auth/login';
+      }
+    }
+    
+    $('#profile-form').on('submit', async function(e){
+      e.preventDefault();
+      const name = $('#profile-name').val();
+      const email = $('#profile-email').val();
+      const password = $('#profile-password').val();
+      $('#profile-msg').text('').removeClass('alert alert-danger alert-success');
+      
+      try {
+        const res = await fetch('/auth/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password: password || undefined })
+        });
+        let data = {};
+        try {
+          data = await res.json();
+        } catch(e) {
+          data = {};
+        }
+        if(!res.ok){
+          const errorMsg = (data && data.error) || '更新失敗';
+          $('#profile-msg').addClass('alert alert-danger').text(errorMsg);
+          return;
+        }
+        if(!data.ok){
+          const errorMsg = (data && data.error) || '更新失敗';
+          $('#profile-msg').addClass('alert alert-danger').text(errorMsg);
+          return;
+        }
+        $('#profile-msg').addClass('alert alert-success').text('更新成功！');
+        $('#profile-password').val('');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (err){
+        $('#profile-msg').addClass('alert alert-danger').text(err.message || '更新失敗，請重試');
+      }
+    });
+    
+    loadProfile();
+  });
+</script>
+{% endblock %}
+

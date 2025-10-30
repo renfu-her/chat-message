@@ -17,7 +17,7 @@
               <span id="user-name">User</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-              <li><a class="dropdown-item" href="#" id="profile-link">Profile</a></li>
+              <li><a class="dropdown-item" href="/auth/profile" id="profile-link">Profile</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="#" id="logout-link">Logout</a></li>
             </ul>
@@ -63,11 +63,6 @@
           } catch(e){
             window.location.href = '/';
           }
-        });
-        
-        $('#profile-link').on('click', function(e){
-          e.preventDefault();
-          alert('Profile 功能開發中');
         });
         
         checkAuth();

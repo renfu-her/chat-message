@@ -11,6 +11,11 @@ def login_view():
     return render_template("auth/login.html")
 
 
+@bp.get("/profile")
+@login_required
+def profile_view():
+    return render_template("auth/profile.html")
+
 
 @bp.post("/login")
 def login():
@@ -92,5 +97,43 @@ def register():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "註冊失敗", "detail": str(e)}), 500
+
+
+@bp.put("/profile")
+@login_required
+def update_profile():
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    
+    if not name:
+        return jsonify({"error": "姓名為必填"}), 400
+    
+    try:
+        user = current_user
+        user.name = name
+        
+        if email and email != user.email:
+            if User.query.filter(User.id != user.id, User.email == email).first():
+                return jsonify({"error": "Email 已被使用"}), 409
+            user.email = email
+        
+        if password:
+            user.set_password(password)
+        
+        db.session.commit()
+        return jsonify({
+            "ok": True,
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+            },
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "更新失敗", "detail": str(e)}), 500
 
 
