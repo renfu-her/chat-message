@@ -1,4 +1,4 @@
-from werkzeug.security import generate_password_hash, check_password_hash
+import bcrypt
 from flask_login import UserMixin
 from . import db, datetime
 
@@ -17,9 +17,15 @@ class User(UserMixin, db.Model):
     messages = db.relationship("Message", back_populates="author", lazy="dynamic")
 
     def set_password(self, password: str) -> None:
-        self.password_hash = generate_password_hash(password)
+        salt = bcrypt.gensalt(rounds=12)
+        self.password_hash = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
     def check_password(self, password: str) -> bool:
-        return check_password_hash(self.password_hash, password)
+        if not self.password_hash:
+            return False
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), self.password_hash.encode("utf-8"))
+        except ValueError:
+            return False
 
 

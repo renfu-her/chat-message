@@ -37,12 +37,23 @@ def create_app() -> Flask:
         except Exception:
             # Soft-fail; continue startup and allow manual migration if needed
             pass
-        # Seed admin user and a default room if not present
-        if not User.query.filter_by(email="admin@example.com").first():
-            admin = User(email="admin@example.com", role="admin")
+        # Seed admin user and default rooms if not present
+        admin = User.query.filter_by(email="admin@example.com").first()
+        if not admin:
+            admin = User(email="admin@example.com", role="admin", name="admin")
             admin.set_password("admin123")
             db.session.add(admin)
             db.session.commit()
+        else:
+            updated = False
+            if admin.name != "admin":
+                admin.name = "admin"
+                updated = True
+            if not admin.password_hash or not admin.password_hash.startswith("$2"):
+                admin.set_password("admin123")
+                updated = True
+            if updated:
+                db.session.commit()
         admin = User.query.filter_by(email="admin@example.com").first()
         if admin:
             default_rooms = ["測試 1 Room", "測試 2 Room", "測試 3 Room"]
