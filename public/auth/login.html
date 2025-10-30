@@ -25,7 +25,7 @@
                 <input type="password" class="form-control" id="password" placeholder="••••••••" required />
               </div>
               <button type="submit" class="btn btn-primary">Login</button>
-              <div id="login-msg" class="text-danger small"></div>
+              <div id="login-msg"></div>
             </form>
           </div>
           <div class="tab-pane fade" id="register-pane" role="tabpanel" aria-labelledby="register-tab" tabindex="0">
@@ -43,7 +43,7 @@
                 <input type="password" class="form-control" id="reg-password" placeholder="••••••••" required />
               </div>
               <button type="submit" class="btn btn-success">Register</button>
-              <div id="register-msg" class="text-danger small"></div>
+              <div id="register-msg"></div>
             </form>
           </div>
         </div>
@@ -63,20 +63,35 @@
       e.preventDefault();
       const email = $('#email').val();
       const password = $('#password').val();
-      $('#login-msg').text('');
+      $('#login-msg').text('').removeClass('alert alert-danger');
       try {
         const res = await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        const data = await res.json();
-        if(!res.ok || !data.ok){
-          throw new Error((data && data.error) || 'Login failed');
+        let data = {};
+        try {
+          data = await res.json();
+        } catch(e) {
+          data = {};
         }
-        window.location.href = '/';
+        if(!res.ok){
+          const errorMsg = (data && data.error) || '登入失敗，請檢查帳號密碼';
+          $('#login-msg').addClass('alert alert-danger').text(errorMsg);
+          return;
+        }
+        if(!data.ok){
+          const errorMsg = (data && data.error) || '登入失敗';
+          $('#login-msg').addClass('alert alert-danger').text(errorMsg);
+          return;
+        }
+        $('#login-msg').addClass('alert alert-success').text('登入成功，正在跳轉...');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       } catch (err){
-        $('#login-msg').text(err.message || 'Login failed');
+        $('#login-msg').addClass('alert alert-danger').text(err.message || '登入失敗，請重試');
       }
     });
 
@@ -85,7 +100,7 @@
       const name = $('#reg-name').val();
       const email = $('#reg-email').val();
       const password = $('#reg-password').val();
-      $('#register-msg').text('');
+      $('#register-msg').text('').removeClass('alert alert-danger alert-success');
       try {
         const res = await fetch('/auth/register', {
           method: 'POST',
@@ -93,13 +108,27 @@
           body: JSON.stringify({ name, email, password })
         });
         let data = {};
-        try { data = await res.json(); } catch(_) {}
-        if(!res.ok || !data.ok){
-          throw new Error((data && (data.error || data.detail)) || 'Register failed');
+        try { 
+          data = await res.json(); 
+        } catch(_) {
+          data = {};
         }
-        window.location.href = '/';
+        if(!res.ok){
+          const errorMsg = (data && (data.error || data.detail)) || '註冊失敗';
+          $('#register-msg').addClass('alert alert-danger').text(errorMsg);
+          return;
+        }
+        if(!data.ok){
+          const errorMsg = (data && (data.error || data.detail)) || '註冊失敗';
+          $('#register-msg').addClass('alert alert-danger').text(errorMsg);
+          return;
+        }
+        $('#register-msg').addClass('alert alert-success').text('註冊成功，正在跳轉...');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       } catch (err){
-        $('#register-msg').text(err.message || 'Register failed');
+        $('#register-msg').addClass('alert alert-danger').text(err.message || '註冊失敗，請重試');
       }
     });
   });

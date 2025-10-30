@@ -19,11 +19,11 @@ def login():
     password = data.get("password") or ""
 
     if not email or not password:
-        return jsonify({"error": "Email and password required"}), 400
+        return jsonify({"error": "Email 和密碼為必填"}), 400
 
     user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(password):
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({"error": "帳號或密碼錯誤"}), 401
 
     login_user(user)
     return jsonify({"ok": True, "user": {"id": user.id, "email": user.email, "role": user.role}})
@@ -43,7 +43,12 @@ def me():
     return jsonify(
         {
             "authenticated": True,
-            "user": {"id": current_user.id, "email": current_user.email, "role": current_user.role},
+            "user": {
+                "id": current_user.id,
+                "email": current_user.email,
+                "name": current_user.name,
+                "role": current_user.role,
+            },
         }
     )
 
@@ -56,7 +61,7 @@ def register():
     name = (data.get("name") or "").strip()
 
     if not email or not password or not name:
-        return jsonify({"error": "Name, email and password required"}), 400
+        return jsonify({"error": "姓名、Email 和密碼為必填"}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "Email 重覆"}), 409
 
@@ -86,6 +91,6 @@ def register():
         return jsonify({"error": "Email 重覆"}), 409
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Register failed", "detail": str(e)}), 500
+        return jsonify({"error": "註冊失敗", "detail": str(e)}), 500
 
 

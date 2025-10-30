@@ -10,8 +10,18 @@
     <nav class="navbar navbar-dark bg-dark mb-3">
       <div class="container d-flex justify-content-between">
         <a class="navbar-brand" href="/">Chat</a>
-        <div>
-          <a class="btn btn-sm btn-outline-light" href="/auth/login">Login</a>
+        <div id="auth-nav">
+          <a class="btn btn-sm btn-outline-light" href="/auth/login" id="login-link">Login</a>
+          <div class="dropdown" id="user-menu" style="display:none;">
+            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <span id="user-name">User</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li><a class="dropdown-item" href="#" id="profile-link">Profile</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" id="logout-link">Logout</a></li>
+            </ul>
+          </div>
         </div>
       </div>
     </nav>
@@ -25,6 +35,44 @@
     </footer>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+      $(function(){
+        async function checkAuth(){
+          try {
+            const res = await fetch('/auth/me');
+            const data = await res.json();
+            if(data.authenticated && data.user){
+              $('#login-link').hide();
+              $('#user-name').text(data.user.name || data.user.email);
+              $('#user-menu').show();
+            } else {
+              $('#login-link').show();
+              $('#user-menu').hide();
+            }
+          } catch(e){
+            $('#login-link').show();
+            $('#user-menu').hide();
+          }
+        }
+        
+        $('#logout-link').on('click', async function(e){
+          e.preventDefault();
+          try {
+            await fetch('/auth/logout', {method: 'POST'});
+            window.location.href = '/';
+          } catch(e){
+            window.location.href = '/';
+          }
+        });
+        
+        $('#profile-link').on('click', function(e){
+          e.preventDefault();
+          alert('Profile 功能開發中');
+        });
+        
+        checkAuth();
+      });
+    </script>
     {% block scripts %}{% endblock %}
   </body>
   </html>
