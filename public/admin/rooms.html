@@ -1,0 +1,66 @@
+{% extends "app.html" %}
+{% block title %}Admin – Rooms{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Admin: Rooms</h1>
+<div id="admin-rooms" class="row g-3">
+  <div class="col-4">
+    <form id="create-room-form" class="d-flex gap-2">
+      <input type="text" id="room-name" class="form-control" placeholder="Room name" required />
+      <button type="submit" class="btn btn-primary">Create</button>
+    </form>
+  </div>
+  <div class="col-8">
+    <ul id="room-list" class="list-group"></ul>
+  </div>
+  <div class="col-12"><div id="admin-msg" class="text-muted small"></div></div>
+</div>
+
+<script>
+  (function(){
+    const $list = $('#room-list');
+    const $form = $('#create-room-form');
+    const $name = $('#room-name');
+    const $msg = $('#admin-msg');
+
+    async function fetchJSON(url, opts){
+      const res = await fetch(url, Object.assign({headers:{'Content-Type':'application/json'}}, opts));
+      if(!res.ok) throw new Error('Request failed');
+      return await res.json();
+    }
+
+    async function loadRooms(){
+      try{
+        const rooms = await fetchJSON('/rooms');
+        $list.empty();
+        rooms.forEach(r => {
+          const $li = $('<li/>').addClass('list-group-item d-flex justify-content-between align-items-center');
+          $li.append($('<span/>').text(r.name));
+          const $btns = $('<div/>');
+          const $del = $('<button/>').addClass('btn btn-sm btn-outline-danger').text('Delete');
+          $del.on('click', async ()=>{
+            if(!confirm('Delete room?')) return;
+            await fetchJSON(`/admin/rooms/${r.id}`, {method:'DELETE'});
+            loadRooms();
+          });
+          $btns.append($del);
+          $li.append($btns);
+          $list.append($li);
+        });
+      }catch(e){ $msg.text('Failed to load rooms (are you logged in as admin?)'); }
+    }
+
+    $form.on('submit', async (e)=>{
+      e.preventDefault();
+      try{
+        await fetchJSON('/admin/rooms', {method:'POST', body: JSON.stringify({name: $name.val()})});
+        $name.val('');
+        loadRooms();
+      }catch(e){ $msg.text('Create failed.'); }
+    });
+
+    loadRooms();
+  })();
+  </script>
+{% endblock %}
+
+

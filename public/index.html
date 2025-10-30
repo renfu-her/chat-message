@@ -1,0 +1,107 @@
+{% extends "app.html" %}
+{% block title %}Chat – Home{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-3">
+    <h5 class="mb-3">Rooms</h5>
+    <ul id="rooms" class="list-group"></ul>
+  </div>
+  <div class="col-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span id="room-title">Select a room</span>
+        <small id="meta" class="text-muted"></small>
+      </div>
+      <div id="chat" class="card-body" style="height:360px; overflow:auto;"></div>
+      <div class="card-footer">
+        <form id="msg-form" class="d-flex gap-2">
+          <input id="msg-input" class="form-control" type="text" placeholder="Type a message..." />
+          <button class="btn btn-primary" type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-3">
+    <div class="alert alert-info">Login via POST /auth/login to enable chats.</div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-gZ2b2m3rFQ2p9k8+QnqTzKc2nAqQASkQ1w5eB+V0UFAJkWwq2U1m4m0rK5w9n3bU" crossorigin="anonymous"></script>
+<script>
+  (function(){
+    const $rooms = $('#rooms');
+    const $chat = $('#chat');
+    const $meta = $('#meta');
+    const $form = $('#msg-form');
+    const $input = $('#msg-input');
+    const $title = $('#room-title');
+    let currentRoomId = null;
+    let socket = null;
+
+    function append(msg){
+      const $div = $('<div/>').text(msg);
+      $chat.append($div);
+      $chat.scrollTop($chat[0].scrollHeight);
+    }
+
+    async function fetchJSON(url, opts){
+      const res = await fetch(url, Object.assign({headers:{'Content-Type':'application/json'}}, opts));
+      if(!res.ok) throw new Error('Request failed');
+      return await res.json();
+    }
+
+    async function loadRooms(){
+      try {
+        const list = await fetchJSON('/rooms');
+        $rooms.empty();
+        list.forEach(r => {
+          const $li = $('<li/>').addClass('list-group-item d-flex justify-content-between align-items-center');
+          const $a = $('<a/>').attr('href', '#').text(r.name);
+          $a.on('click', async (e) => {
+            e.preventDefault();
+            await fetchJSON(`/rooms/${r.id}/join`, {method:'POST'});
+            joinSocketRoom(r.id);
+            loadMessages(r.id);
+            $title.text(r.name);
+          });
+          $li.append($a);
+          $rooms.append($li);
+        });
+      } catch(e){
+        $meta.text('Load rooms failed (login required).');
+      }
+    }
+
+    async function loadMessages(roomId){
+      const msgs = await fetchJSON(`/rooms/${roomId}/messages?limit=50`);
+      $chat.empty();
+      msgs.forEach(m => append(`${m.user_id}: ${m.content}`));
+    }
+
+    function ensureSocket(){
+      if(socket) return;
+      socket = io('/chat');
+      socket.on('ready', (data)=>{ $meta.text(`Connected as ${data.user_id} (${data.role})`); });
+      socket.on('new_message', (m)=>{ if(String(m.room_id) === String(currentRoomId)) append(`${m.user_id}: ${m.content}`); });
+    }
+
+    function joinSocketRoom(roomId){
+      ensureSocket();
+      currentRoomId = roomId;
+      socket.emit('join_room', {room_id: roomId});
+    }
+
+    $form.on('submit', (e)=>{
+      e.preventDefault();
+      const text = ($input.val() || '').trim();
+      if(!text || !currentRoomId) return;
+      socket.emit('send_message', {room_id: currentRoomId, content: text});
+      $input.val('');
+    });
+
+    loadRooms();
+  })();
+</script>
+{% endblock %}
+
+
