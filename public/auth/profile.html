@@ -6,6 +6,13 @@
     <div class="card shadow-sm">
       <div class="card-body">
         <h1 class="h4 mb-3">個人資料</h1>
+        <div class="text-center mb-3">
+          <div id="avatar-preview" style="width:100px; height:100px; margin:0 auto 10px; border-radius:50%; overflow:hidden; border:2px solid #dee2e6; display:flex; align-items:center; justify-content:center; background:#f8f9fa;">
+            <i class="fas fa-user fa-3x text-muted"></i>
+          </div>
+          <input type="file" id="avatar-upload" accept="image/png,image/jpeg,image/jpg,image/gif" style="display:none;" />
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('#avatar-upload').click()">上傳頭像</button>
+        </div>
         <form id="profile-form" class="vstack gap-3">
           <div>
             <label for="profile-name" class="form-label">姓名</label>
@@ -36,6 +43,15 @@
   $(function(){
     let userData = null;
     
+    function updateAvatarPreview(imageUrl){
+      const $preview = $('#avatar-preview');
+      if(imageUrl){
+        $preview.html(`<img src="/auth/uploads/${imageUrl}" style="width:100%; height:100%; object-fit:cover;" />`);
+      } else {
+        $preview.html('<i class="fas fa-user fa-3x text-muted"></i>');
+      }
+    }
+    
     async function loadProfile(){
       try {
         const res = await fetch('/auth/me');
@@ -44,6 +60,7 @@
           userData = data.user;
           $('#profile-name').val(data.user.name || '');
           $('#profile-email').val(data.user.email || '');
+          updateAvatarPreview(data.user.image);
         } else {
           window.location.href = '/auth/login';
         }
@@ -51,6 +68,33 @@
         window.location.href = '/auth/login';
       }
     }
+    
+    $('#avatar-upload').on('change', async function(e){
+      const file = e.target.files[0];
+      if(!file) return;
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await fetch('/auth/profile/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if(res.ok && data.ok){
+          updateAvatarPreview(data.image);
+          $('#profile-msg').removeClass('alert-danger').addClass('alert alert-success').text('頭像上傳成功！');
+          setTimeout(() => {
+            $('#profile-msg').removeClass('alert alert-success').text('');
+          }, 2000);
+        } else {
+          $('#profile-msg').removeClass('alert-success').addClass('alert alert-danger').text(data.error || '上傳失敗');
+        }
+      } catch(err){
+        $('#profile-msg').removeClass('alert-success').addClass('alert alert-danger').text('上傳失敗，請重試');
+      }
+    });
     
     $('#profile-form').on('submit', async function(e){
       e.preventDefault();

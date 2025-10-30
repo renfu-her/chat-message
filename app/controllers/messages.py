@@ -29,6 +29,7 @@ def get_messages(room_id: int):
             "room_id": m.room_id,
             "user_id": m.user_id,
             "author_name": getattr(m.author, "name", None),
+            "author_image": getattr(m.author, "image", None),
             "content": m.content,
             "created_at": m.created_at.isoformat(),
         }

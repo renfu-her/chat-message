@@ -63,6 +63,7 @@ def list_members():
             "id": m.id,
             "name": m.name,
             "email": m.email,
+            "image": m.image,
             "created_at": m.created_at.isoformat(),
             "online": m.id in online_user_ids,
         }

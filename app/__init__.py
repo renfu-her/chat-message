@@ -34,6 +34,9 @@ def create_app() -> Flask:
             if "name" not in user_columns:
                 db.session.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(120) NULL"))
                 db.session.commit()
+            if "image" not in user_columns:
+                db.session.execute(text("ALTER TABLE users ADD COLUMN image VARCHAR(255) NULL"))
+                db.session.commit()
         except Exception:
             # Soft-fail; continue startup and allow manual migration if needed
             pass

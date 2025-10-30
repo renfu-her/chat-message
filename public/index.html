@@ -42,6 +42,48 @@
     let currentRoomId = null;
     let socket = null;
     let onlineUserIds = new Set(); // Track online user IDs
+    let currentUserId = null; // Track current user ID
+
+    function getAvatarHtml(imageUrl, size = 40){
+      if(imageUrl){
+        return `<img src="/auth/uploads/${imageUrl}" style="width:${size}px; height:${size}px; border-radius:50%; object-fit:cover; border:2px solid #dee2e6;" />`;
+      } else {
+        return `<div style="width:${size}px; height:${size}px; border-radius:50%; background:#f8f9fa; border:2px solid #dee2e6; display:flex; align-items:center; justify-content:center;"><i class="fas fa-user text-muted"></i></div>`;
+      }
+    }
+
+    function appendMessage(msgObj){
+      const isOwn = msgObj.user_id === currentUserId;
+      const $msgContainer = $('<div/>').addClass('d-flex mb-3').css({
+        'justify-content': isOwn ? 'flex-end' : 'flex-start',
+        'align-items': 'flex-end'
+      });
+      
+      if(!isOwn){
+        const $avatar = $('<div/>').css({'margin-right': '8px'});
+        $avatar.html(getAvatarHtml(msgObj.author_image));
+        $msgContainer.append($avatar);
+      }
+      
+      const $msgBubble = $('<div/>').addClass('px-3 py-2 rounded').css({
+        'max-width': '50%',
+        'background': isOwn ? '#d4edda' : '#ffffff',
+        'color': isOwn ? '#000' : '#212529',
+        'border': isOwn ? '1px solid #c3e6cb' : '1px solid #dee2e6',
+        'box-shadow': '0 1px 2px rgba(0,0,0,0.1)'
+      });
+      $msgBubble.append($('<div/>').text(msgObj.content));
+      $msgContainer.append($msgBubble);
+      
+      if(isOwn){
+        const $avatar = $('<div/>').css({'margin-left': '8px'});
+        $avatar.html(getAvatarHtml(msgObj.author_image));
+        $msgContainer.append($avatar);
+      }
+      
+      $chat.append($msgContainer);
+      $chat.scrollTop($chat[0].scrollHeight);
+    }
 
     function append(msg){
       const $div = $('<div/>').text(msg);
@@ -88,6 +130,9 @@
           });
           $li.append($dot);
         }
+        const $avatar = $('<div/>').css({'margin-right': '8px'});
+        $avatar.html(getAvatarHtml(m.image, 32));
+        $li.append($avatar);
         const displayText = m.name ? `${m.name} (${maskEmail(m.email)})` : maskEmail(m.email);
         $li.append($('<span/>').text(displayText));
         $members.append($li);
@@ -119,13 +164,14 @@
     async function loadMessages(roomId){
       const msgs = await fetchJSON(`/rooms/${roomId}/messages?limit=50`);
       $chat.empty();
-      msgs.forEach(m => append(`${m.author_name || m.user_id}: ${m.content}`));
+      msgs.forEach(m => appendMessage(m));
     }
 
     function ensureSocket(){
       if(socket) return;
       socket = io('/chat');
       socket.on('ready', (data)=>{ 
+        currentUserId = data.user_id;
         $meta.text(`Connected as ${data.user_id} (${data.role})`);
         // Reload members to get online status
         loadMembers();
@@ -146,7 +192,11 @@
         onlineUserIds.delete(data.user_id);
         loadMembers();
       });
-      socket.on('new_message', (m)=>{ if(String(m.room_id) === String(currentRoomId)) append(`${m.author_name || m.user_id}: ${m.content}`); });
+      socket.on('new_message', (m)=>{ 
+        if(String(m.room_id) === String(currentRoomId)) {
+          appendMessage(m);
+        }
+      });
       socket.on('room_deleted', (data)=>{
         if(String(data.room_id) === String(currentRoomId)){
           append('Room was deleted by admin.');
@@ -176,6 +226,18 @@
     loadMembers();
     // Auto-connect Socket.IO if logged in to track online status
     ensureSocket();
+    // Get current user ID from auth endpoint
+    (async function(){
+      try {
+        const res = await fetch('/auth/me');
+        const data = await res.json();
+        if(data.authenticated && data.user){
+          currentUserId = data.user.id;
+        }
+      } catch(e){
+        // Silently fail
+      }
+    })();
   });
 </script>
 {% endblock %}

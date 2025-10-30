@@ -10,6 +10,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(120), nullable=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    image = db.Column(db.String(255), nullable=True)  # Path to user avatar image
     role = db.Column(db.Enum("admin", "member", name="user_roles"), nullable=False, default="member")
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
