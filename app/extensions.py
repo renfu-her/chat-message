@@ -19,6 +19,6 @@ def init_extensions(app):
     socketio.init_app(app)
     mail.init_app(app)
 
-    login_manager.login_view = "auth.login"  # will be defined later
+    login_manager.login_view = "auth.login_view"  # Redirect to login page if not authenticated
 
 
