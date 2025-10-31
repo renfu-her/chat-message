@@ -8,4 +8,6 @@ eventlet==0.36.1
 python-dotenv==1.0.1
 PyMySQL==1.1.1
 bcrypt==4.2.0
+Pillow==10.4.0
+uuid7==0.1.0
 

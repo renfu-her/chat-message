@@ -3,6 +3,18 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 import os
+from PIL import Image
+try:
+    from uuid7 import uuid7
+except ImportError:
+    # Fallback: simple UUID7-like generator using timestamp + random
+    import time
+    import random
+    def uuid7():
+        """Simple UUID7-like generator (timestamp + random)"""
+        timestamp_ms = int(time.time() * 1000)
+        random_part = random.randint(0, 0xFFFFFFFFFFFF)
+        return f"{timestamp_ms:013x}-{random_part:012x}"
 from ..extensions import db
 from ..models.user import User
 
@@ -131,9 +143,26 @@ def upload_image():
         upload_folder = current_app.config["UPLOAD_FOLDER"]
         os.makedirs(upload_folder, exist_ok=True)
         
-        filename = f"user_{current_user.id}_{secure_filename(file.filename)}"
+        # Generate UUID7 for filename
+        uuid7_value = uuid7()
+        filename = f"{uuid7_value}.webp"
         filepath = os.path.join(upload_folder, filename)
-        file.save(filepath)
+        
+        # Open and convert image to WebP
+        image = Image.open(file.stream)
+        # Convert RGBA to RGB if necessary (WebP doesn't support RGBA in all cases)
+        if image.mode in ('RGBA', 'LA', 'P'):
+            # Create a white background
+            rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+            if image.mode == 'P':
+                image = image.convert('RGBA')
+            rgb_image.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+            image = rgb_image
+        elif image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Save as WebP with quality optimization
+        image.save(filepath, 'WEBP', quality=85, method=6)
         
         # Update user image
         old_image = current_user.image
@@ -152,6 +181,7 @@ def upload_image():
         return jsonify({"ok": True, "image": filename})
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Failed to upload image: {str(e)}")
         return jsonify({"error": "上傳失敗", "detail": str(e)}), 500
 
 
