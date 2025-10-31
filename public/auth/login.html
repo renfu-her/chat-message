@@ -77,21 +77,21 @@
           data = {};
         }
         if(!res.ok){
-          const errorMsg = (data && data.error) || '登入失敗，請檢查帳號密碼';
+          const errorMsg = (data && data.error) || 'Login failed, please check your credentials';
           $('#login-msg').addClass('alert alert-danger').text(errorMsg);
           return;
         }
         if(!data.ok){
-          const errorMsg = (data && data.error) || '登入失敗';
+          const errorMsg = (data && data.error) || 'Login failed';
           $('#login-msg').addClass('alert alert-danger').text(errorMsg);
           return;
         }
-        $('#login-msg').addClass('alert alert-success').text('登入成功，正在跳轉...');
+        $('#login-msg').addClass('alert alert-success').text('Login successful, redirecting...');
         setTimeout(() => {
           window.location.href = '/';
         }, 500);
       } catch (err){
-        $('#login-msg').addClass('alert alert-danger').text(err.message || '登入失敗，請重試');
+        $('#login-msg').addClass('alert alert-danger').text(err.message || 'Login failed, please try again');
       }
     });
 
@@ -114,21 +114,21 @@
           data = {};
         }
         if(!res.ok){
-          const errorMsg = (data && (data.error || data.detail)) || '註冊失敗';
+          const errorMsg = (data && (data.error || data.detail)) || 'Registration failed';
           $('#register-msg').addClass('alert alert-danger').text(errorMsg);
           return;
         }
         if(!data.ok){
-          const errorMsg = (data && (data.error || data.detail)) || '註冊失敗';
+          const errorMsg = (data && (data.error || data.detail)) || 'Registration failed';
           $('#register-msg').addClass('alert alert-danger').text(errorMsg);
           return;
         }
-        $('#register-msg').addClass('alert alert-success').text('註冊成功，正在跳轉...');
+        $('#register-msg').addClass('alert alert-success').text('Registration successful, redirecting...');
         setTimeout(() => {
           window.location.href = '/';
         }, 500);
       } catch (err){
-        $('#register-msg').addClass('alert alert-danger').text(err.message || '註冊失敗，請重試');
+        $('#register-msg').addClass('alert alert-danger').text(err.message || 'Registration failed, please try again');
       }
     });
   });

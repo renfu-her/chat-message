@@ -5,30 +5,30 @@
   <div class="col-md-6">
     <div class="card shadow-sm">
       <div class="card-body">
-        <h1 class="h4 mb-3">個人資料</h1>
+        <h1 class="h4 mb-3">Profile</h1>
         <div class="text-center mb-3">
           <div id="avatar-preview" style="width:100px; height:100px; margin:0 auto 10px; border-radius:50%; overflow:hidden; border:2px solid #dee2e6; display:flex; align-items:center; justify-content:center; background:#f8f9fa;">
             <i class="fas fa-user fa-3x text-muted"></i>
           </div>
           <input type="file" id="avatar-upload" accept="image/png,image/jpeg,image/jpg,image/gif" style="display:none;" />
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('#avatar-upload').click()">上傳頭像</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('#avatar-upload').click()">Upload Avatar</button>
         </div>
         <form id="profile-form" class="vstack gap-3">
           <div>
-            <label for="profile-name" class="form-label">姓名</label>
+            <label for="profile-name" class="form-label">Name</label>
             <input type="text" class="form-control" id="profile-name" placeholder="Your name" required />
           </div>
           <div>
             <label for="profile-email" class="form-label">Email</label>
             <input type="email" class="form-control" id="profile-email" placeholder="name@example.com" readonly />
-            <small class="text-muted">Email 無法更改</small>
+            <small class="text-muted">Email cannot be changed</small>
           </div>
           <div>
-            <label for="profile-password" class="form-label">新密碼（留空則不更新）</label>
+            <label for="profile-password" class="form-label">New Password (leave blank to keep current)</label>
             <input type="password" class="form-control" id="profile-password" placeholder="••••••••" />
-            <small class="text-muted">如要更新密碼請輸入新密碼，否則留空</small>
+            <small class="text-muted">Enter a new password to update, or leave blank to keep current password</small>
           </div>
-          <button type="submit" class="btn btn-primary">更新</button>
+          <button type="submit" class="btn btn-primary">Update</button>
           <div id="profile-msg"></div>
         </form>
       </div>
@@ -84,15 +84,15 @@
         const data = await res.json();
         if(res.ok && data.ok){
           updateAvatarPreview(data.image);
-          $('#profile-msg').removeClass('alert-danger').addClass('alert alert-success').text('頭像上傳成功！');
+          $('#profile-msg').removeClass('alert-danger').addClass('alert alert-success').text('Avatar uploaded successfully!');
           setTimeout(() => {
             $('#profile-msg').removeClass('alert alert-success').text('');
           }, 2000);
         } else {
-          $('#profile-msg').removeClass('alert-success').addClass('alert alert-danger').text(data.error || '上傳失敗');
+          $('#profile-msg').removeClass('alert-success').addClass('alert alert-danger').text(data.error || 'Upload failed');
         }
       } catch(err){
-        $('#profile-msg').removeClass('alert-success').addClass('alert alert-danger').text('上傳失敗，請重試');
+        $('#profile-msg').removeClass('alert-success').addClass('alert alert-danger').text('Upload failed, please try again');
       }
     });
     
@@ -115,22 +115,22 @@
           data = {};
         }
         if(!res.ok){
-          const errorMsg = (data && data.error) || '更新失敗';
+          const errorMsg = (data && data.error) || 'Update failed';
           $('#profile-msg').addClass('alert alert-danger').text(errorMsg);
           return;
         }
         if(!data.ok){
-          const errorMsg = (data && data.error) || '更新失敗';
+          const errorMsg = (data && data.error) || 'Update failed';
           $('#profile-msg').addClass('alert alert-danger').text(errorMsg);
           return;
         }
-        $('#profile-msg').addClass('alert alert-success').text('更新成功！');
+        $('#profile-msg').addClass('alert alert-success').text('Update successful!');
         $('#profile-password').val('');
         setTimeout(() => {
           window.location.reload();
         }, 1000);
       } catch (err){
-        $('#profile-msg').addClass('alert alert-danger').text(err.message || '更新失敗，請重試');
+        $('#profile-msg').addClass('alert alert-danger').text(err.message || 'Update failed, please try again');
       }
     });
     

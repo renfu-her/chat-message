@@ -179,12 +179,12 @@
     <h5 class="mb-3">Rooms</h5>
     <div class="mb-2">
       <button class="btn btn-sm btn-primary w-100" data-bs-toggle="collapse" data-bs-target="#create-room-form">
-        <i class="fas fa-plus"></i> 創建房間
+        <i class="fas fa-plus"></i> Create Room
       </button>
       <div class="collapse mt-2" id="create-room-form">
         <div class="card card-body">
-          <input type="text" id="new-room-name" class="form-control form-control-sm mb-2" placeholder="房間名稱" />
-          <button class="btn btn-sm btn-success w-100" id="create-room-btn">創建</button>
+          <input type="text" id="new-room-name" class="form-control form-control-sm mb-2" placeholder="Room name" />
+          <button class="btn btn-sm btn-success w-100" id="create-room-btn">Create</button>
         </div>
       </div>
     </div>
@@ -195,12 +195,12 @@
   <div class="col-12 d-md-none mb-1">
     <div class="mb-1">
       <select id="room-select-mobile" class="form-select">
-        <option value="">選擇房間</option>
+        <option value="">Select a room</option>
       </select>
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-sm btn-primary flex-grow-1" data-bs-toggle="collapse" data-bs-target="#create-room-form-mobile">
-        <i class="fas fa-plus"></i> 創建房間
+        <i class="fas fa-plus"></i> Create Room
       </button>
       <button class="btn btn-sm btn-info" data-bs-toggle="offcanvas" data-bs-target="#members-offcanvas">
         <i class="fas fa-users"></i> Members
@@ -208,8 +208,8 @@
     </div>
     <div class="collapse mt-1" id="create-room-form-mobile">
       <div class="card card-body">
-        <input type="text" id="new-room-name-mobile" class="form-control form-control-sm mb-2" placeholder="房間名稱" />
-        <button class="btn btn-sm btn-success w-100" id="create-room-btn-mobile">創建</button>
+        <input type="text" id="new-room-name-mobile" class="form-control form-control-sm mb-2" placeholder="Room name" />
+        <button class="btn btn-sm btn-success w-100" id="create-room-btn-mobile">Create</button>
       </div>
     </div>
   </div>
@@ -392,7 +392,7 @@
         const list = await fetchJSON('/rooms');
         roomsData = list;
         $rooms.empty();
-        $roomSelectMobile.empty().append('<option value="">選擇房間</option>');
+        $roomSelectMobile.empty().append('<option value="">Select a room</option>');
         
         list.forEach(r => {
           const $li = $('<li/>').addClass('list-group-item d-flex justify-content-between align-items-center');
@@ -415,7 +415,7 @@
             const $closeBtn = $('<button/>').addClass('btn btn-outline-warning btn-sm').html('<i class="fas fa-lock"></i>');
             $closeBtn.on('click', async (e)=>{
               e.stopPropagation();
-              if(confirm('確定要關閉此房間嗎？')){
+              if(confirm('Are you sure you want to close this room?')){
                 await fetchJSON(`/rooms/${r.id}/close`, {method:'POST'});
                 loadRooms();
               }
@@ -423,7 +423,7 @@
             const $delBtn = $('<button/>').addClass('btn btn-outline-danger btn-sm').html('<i class="fas fa-trash"></i>');
             $delBtn.on('click', async (e)=>{
               e.stopPropagation();
-              if(confirm('確定要刪除此房間嗎？')){
+              if(confirm('Are you sure you want to delete this room?')){
                 await fetchJSON(`/rooms/${r.id}`, {method:'DELETE'});
                 loadRooms();
               }
@@ -554,7 +554,7 @@
     $('#create-room-btn').on('click', async function(){
       const name = $('#new-room-name').val();
       if(!name || !name.trim()){
-        alert('請輸入房間名稱');
+        alert('Please enter a room name');
         return;
       }
       try {
@@ -569,10 +569,10 @@
           $('#create-room-form').collapse('hide');
           loadRooms();
         } else {
-          alert(data.error || '創建失敗');
+          alert(data.error || 'Failed to create room');
         }
       } catch(e){
-        alert('創建失敗，請重試');
+        alert('Failed to create room, please try again');
       }
     });
     
@@ -580,7 +580,7 @@
     $('#create-room-btn-mobile').on('click', async function(){
       const name = $('#new-room-name-mobile').val();
       if(!name || !name.trim()){
-        alert('請輸入房間名稱');
+        alert('Please enter a room name');
         return;
       }
       try {
@@ -595,10 +595,10 @@
           $('#create-room-form-mobile').collapse('hide');
           loadRooms();
         } else {
-          alert(data.error || '創建失敗');
+          alert(data.error || 'Failed to create room');
         }
       } catch(e){
-        alert('創建失敗，請重試');
+        alert('Failed to create room, please try again');
       }
     });
     

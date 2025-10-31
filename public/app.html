@@ -45,13 +45,13 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="feedbackModalLabel">意見回饋</h5>
+            <h5 class="modal-title" id="feedbackModalLabel">Feedback</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <form id="feedback-form">
               <div class="mb-3">
-                <label for="feedback-name" class="form-label">姓名 <span class="text-danger">*</span></label>
+                <label for="feedback-name" class="form-label">Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="feedback-name" required>
               </div>
               <div class="mb-3">
@@ -59,19 +59,19 @@
                 <input type="email" class="form-control" id="feedback-email" required>
               </div>
               <div class="mb-3">
-                <label for="feedback-subject" class="form-label">主題 <span class="text-danger">*</span></label>
+                <label for="feedback-subject" class="form-label">Subject <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="feedback-subject" required>
               </div>
               <div class="mb-3">
-                <label for="feedback-message" class="form-label">訊息內容 <span class="text-danger">*</span></label>
+                <label for="feedback-message" class="form-label">Message <span class="text-danger">*</span></label>
                 <textarea class="form-control" id="feedback-message" rows="5" required></textarea>
               </div>
               <div id="feedback-alert" style="display:none;"></div>
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" id="feedback-submit-btn">送出</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="feedback-submit-btn">Submit</button>
           </div>
         </div>
       </div>
@@ -120,14 +120,14 @@
           $('#feedback-alert').hide().removeClass('alert-success alert-danger').text('');
           
           if(!name || !email || !subject || !message){
-            $('#feedback-alert').addClass('alert alert-danger').text('請填寫所有必填欄位').show();
+            $('#feedback-alert').addClass('alert alert-danger').text('Please fill in all required fields').show();
             return;
           }
           
           // Disable submit button
           const $btn = $('#feedback-submit-btn');
           const originalText = $btn.text();
-          $btn.prop('disabled', true).text('送出中...');
+          $btn.prop('disabled', true).text('Submitting...');
           
           try {
             const res = await fetch('/feedback', {
@@ -139,7 +139,7 @@
             const data = await res.json();
             
             if(res.ok && data.ok){
-              $('#feedback-alert').addClass('alert alert-success').text(data.message || '意見回饋已送出，謝謝您的回饋！').show();
+              $('#feedback-alert').addClass('alert alert-success').text(data.message || 'Feedback submitted successfully. Thank you!').show();
               // Reset form
               $('#feedback-form')[0].reset();
               // Close modal after 2 seconds
@@ -148,10 +148,10 @@
                 $('#feedback-alert').hide();
               }, 2000);
             } else {
-              $('#feedback-alert').addClass('alert alert-danger').text(data.error || '提交失敗，請稍後再試').show();
+              $('#feedback-alert').addClass('alert alert-danger').text(data.error || 'Submission failed, please try again later').show();
             }
           } catch(e){
-            $('#feedback-alert').addClass('alert alert-danger').text('提交失敗，請稍後再試').show();
+            $('#feedback-alert').addClass('alert alert-danger').text('Submission failed, please try again later').show();
           } finally {
             $btn.prop('disabled', false).text(originalText);
           }
