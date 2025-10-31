@@ -4,6 +4,9 @@ from app.extensions import socketio
 
 app = create_app()
 
+# For uWSGI: ensure app is accessible
+application = app
+
 
 if __name__ == "__main__":
     # eventlet is the default async_mode configured in extensions
