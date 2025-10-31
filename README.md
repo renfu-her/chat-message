@@ -49,6 +49,15 @@ DB_NAME=chat-python
 
 # Session Security (for production)
 SESSION_COOKIE_SECURE=false
+
+# Email Configuration (for feedback notifications)
+MAIL_SERVER=smtp.example.com
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=your-email@example.com
+MAIL_PASSWORD=your-password
+MAIL_FROM=noreply@example.com
+MAIL_TO=admin@example.com
 ```
 
 If `.env` file is not provided, defaults will be used:
@@ -57,11 +66,16 @@ If `.env` file is not provided, defaults will be used:
 - DB_USER=root
 - DB_PASSWORD=(empty)
 - DB_NAME=chat-python
+- MAIL_SERVER=localhost
+- MAIL_PORT=587
+- MAIL_USE_TLS=true
+- MAIL_FROM=noreply@example.com
+- MAIL_TO=admin@example.com
 
 4. Initialize Database Tables
 
    When you first run the application, it will automatically:
-   - Create all database tables (`users`, `rooms`, `room_memberships`, `messages`) using SQLAlchemy models
+   - Create all database tables (`users`, `rooms`, `room_memberships`, `messages`, `feedbacks`) using SQLAlchemy models
    - Add missing columns if tables already exist (auto-migration)
    - Seed an admin user (`admin@example.com` / `admin123`) and default rooms
    
@@ -92,10 +106,19 @@ python scripts/seed_demo.py
 This creates example member accounts (`alice@example.com`, `bob@example.com`) with sample messages.
 
 ## API
+
+### Authentication
 - POST `/auth/login`, POST `/auth/logout`, GET `/auth/me`
+
+### Rooms
 - GET `/rooms`, POST `/rooms/<id>/join`, POST `/rooms/<id>/leave`
 - GET `/rooms/<id>/messages?before=<iso>&limit=50`
 - Admin: POST `/admin/rooms`, PUT `/admin/rooms/<id>`, DELETE `/admin/rooms/<id>`
+
+### Feedback
+- POST `/feedback` - Submit feedback form
+  - Body: `{ "name": "string", "email": "string", "subject": "string", "message": "string" }`
+  - Saves to database and sends email notification
 
 ## Socket.IO (/chat)
 - join_room { room_id }
@@ -111,6 +134,7 @@ The application uses the following tables:
 - `rooms` - Chat rooms (name, created_by, is_active)
 - `room_memberships` - User-room relationships (user_id, room_id, joined_at)
 - `messages` - Chat messages (room_id, author_id, content, created_at)
+- `feedbacks` - User feedback submissions (name, email, subject, message, user_id, created_at)
 
 All tables are created automatically on first run via SQLAlchemy's `db.create_all()`.
 
@@ -133,8 +157,25 @@ If you see "no python application found":
 3. Check logs: `/tmp/uwsgi.log` or stdout/stderr
 4. Ensure Python path is correct: `pythonpath = %d` in uwsgi.ini
 
+## Features
+
+### Feedback System
+- Users can submit feedback via the "Feedback" button in the top navigation bar
+- Feedback is saved to the database and automatically sent via email to the configured `MAIL_TO` address
+- If the user is logged in, their `user_id` is automatically associated with the feedback
+- Email configuration is optional - if email fails, feedback is still saved to the database
+
+### Email Configuration
+To enable email notifications for feedback:
+1. Configure SMTP settings in `.env` file (see Environment Configuration above)
+2. Ensure `MAIL_SERVER`, `MAIL_USERNAME`, `MAIL_PASSWORD` are set correctly
+3. Set `MAIL_TO` to the email address where feedback notifications should be sent
+
+If email is not configured or fails, feedback submissions will still be saved to the database.
+
 ## Notes
 - First run seeds an admin user (`admin@example.com` / `admin123`) and default rooms automatically.
 - Table structure is automatically created - no manual SQL scripts needed.
 - For production, configure CORS and session security settings in `.env`.
+- Feedback email notifications require proper SMTP configuration in `.env`.
 

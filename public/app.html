@@ -11,17 +11,22 @@
     <nav class="navbar navbar-dark bg-dark mb-3">
       <div class="container d-flex justify-content-between">
         <a class="navbar-brand" href="/">Chat</a>
-        <div id="auth-nav">
-          <a class="btn btn-sm btn-outline-light" href="/auth/login" id="login-link">Login</a>
-          <div class="dropdown" id="user-menu" style="display:none;">
-            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-              <span id="user-name">User</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-              <li><a class="dropdown-item" href="/auth/profile" id="profile-link">Profile</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" id="logout-link">Logout</a></li>
-            </ul>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+            <i class="fas fa-comment-dots"></i> Feedback
+          </button>
+          <div id="auth-nav">
+            <a class="btn btn-sm btn-outline-light" href="/auth/login" id="login-link">Login</a>
+            <div class="dropdown" id="user-menu" style="display:none;">
+              <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <span id="user-name">User</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                <li><a class="dropdown-item" href="/auth/profile" id="profile-link">Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" id="logout-link">Logout</a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
@@ -34,6 +39,44 @@
         <small class="text-muted">@ Chat</small>
       </div>
     </footer>
+    
+    <!-- Feedback Modal -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="feedbackModalLabel">意見回饋</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="feedback-form">
+              <div class="mb-3">
+                <label for="feedback-name" class="form-label">姓名 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="feedback-name" required>
+              </div>
+              <div class="mb-3">
+                <label for="feedback-email" class="form-label">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" id="feedback-email" required>
+              </div>
+              <div class="mb-3">
+                <label for="feedback-subject" class="form-label">主題 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="feedback-subject" required>
+              </div>
+              <div class="mb-3">
+                <label for="feedback-message" class="form-label">訊息內容 <span class="text-danger">*</span></label>
+                <textarea class="form-control" id="feedback-message" rows="5" required></textarea>
+              </div>
+              <div id="feedback-alert" style="display:none;"></div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" id="feedback-submit-btn">送出</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
@@ -64,6 +107,60 @@
           } catch(e){
             window.location.href = '/';
           }
+        });
+        
+        // Feedback form submission
+        $('#feedback-submit-btn').on('click', async function(){
+          const name = $('#feedback-name').val().trim();
+          const email = $('#feedback-email').val().trim();
+          const subject = $('#feedback-subject').val().trim();
+          const message = $('#feedback-message').val().trim();
+          
+          // Clear previous alerts
+          $('#feedback-alert').hide().removeClass('alert-success alert-danger').text('');
+          
+          if(!name || !email || !subject || !message){
+            $('#feedback-alert').addClass('alert alert-danger').text('請填寫所有必填欄位').show();
+            return;
+          }
+          
+          // Disable submit button
+          const $btn = $('#feedback-submit-btn');
+          const originalText = $btn.text();
+          $btn.prop('disabled', true).text('送出中...');
+          
+          try {
+            const res = await fetch('/feedback', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({name, email, subject, message})
+            });
+            
+            const data = await res.json();
+            
+            if(res.ok && data.ok){
+              $('#feedback-alert').addClass('alert alert-success').text(data.message || '意見回饋已送出，謝謝您的回饋！').show();
+              // Reset form
+              $('#feedback-form')[0].reset();
+              // Close modal after 2 seconds
+              setTimeout(() => {
+                $('#feedbackModal').modal('hide');
+                $('#feedback-alert').hide();
+              }, 2000);
+            } else {
+              $('#feedback-alert').addClass('alert alert-danger').text(data.error || '提交失敗，請稍後再試').show();
+            }
+          } catch(e){
+            $('#feedback-alert').addClass('alert alert-danger').text('提交失敗，請稍後再試').show();
+          } finally {
+            $btn.prop('disabled', false).text(originalText);
+          }
+        });
+        
+        // Reset form when modal is closed
+        $('#feedbackModal').on('hidden.bs.modal', function(){
+          $('#feedback-form')[0].reset();
+          $('#feedback-alert').hide().removeClass('alert-success alert-danger').text('');
         });
         
         checkAuth();

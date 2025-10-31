@@ -22,6 +22,7 @@ def create_app() -> Flask:
     from .extensions import db
     from .models.user import User
     from .models.room import Room
+    from .models.feedback import Feedback  # Import to ensure table is created
 
     with app.app_context():
         db.create_all()
@@ -78,6 +79,7 @@ def register_blueprints(app: Flask) -> None:
     from .controllers.auth import bp as auth_bp
     from .controllers.rooms import bp as rooms_bp
     from .controllers.messages import bp as messages_bp
+    from .controllers.feedback import bp as feedback_bp
     from .extensions import login_manager
     from .models.user import User
 
@@ -85,6 +87,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(auth_bp)
     app.register_blueprint(rooms_bp)
     app.register_blueprint(messages_bp)
+    app.register_blueprint(feedback_bp)
 
     @login_manager.user_loader
     def load_user(user_id: str):

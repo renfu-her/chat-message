@@ -29,6 +29,37 @@ class Config:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2MB max file size
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+    
+    # Email configuration from .env
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "localhost")
+    # Support both TLS (587) and SSL (465) ports
+    try:
+        MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
+    except (ValueError, TypeError):
+        MAIL_PORT = 587
+    
+    # TLS and SSL are mutually exclusive
+    mail_use_tls = os.getenv("MAIL_USE_TLS", "").lower()
+    mail_use_ssl = os.getenv("MAIL_USE_SSL", "").lower()
+    
+    if mail_use_tls == "true":
+        MAIL_USE_TLS = True
+        MAIL_USE_SSL = False
+    elif mail_use_ssl == "true":
+        MAIL_USE_TLS = False
+        MAIL_USE_SSL = True
+    else:
+        # Default to TLS for port 587, SSL for port 465
+        MAIL_USE_TLS = (MAIL_PORT == 587)
+        MAIL_USE_SSL = (MAIL_PORT == 465)
+    
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "").strip()
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "").strip()
+    MAIL_FROM = os.getenv("MAIL_FROM", "noreply@example.com").strip()
+    MAIL_TO = os.getenv("MAIL_TO", "admin@example.com").strip()  # Recipient for feedback emails
+    
+    # Optional: Mail debug mode
+    MAIL_DEBUG = os.getenv("MAIL_DEBUG", "false").lower() == "true"
 
 
 def get_config() -> type[Config]:
