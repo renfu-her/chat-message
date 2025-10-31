@@ -284,7 +284,6 @@
     const $members = $('#members');
     const $membersMobile = $('#members-mobile');
     const $roomSelectMobile = $('#room-select-mobile');
-    const $roomsContainer = $('.col-md-3.d-none.d-md-block'); // Rooms sidebar container
     let currentRoomId = null;
     let socket = null;
     let onlineUserIds = new Set(); // Track online user IDs
@@ -299,14 +298,20 @@
       }
     }
 
-    // Change room sidebar background to light blue when room is selected
+    // Change selected room item background to light blue
     function changeRoomBackground(roomId){
+      // Remove highlight from all room items
+      $('#rooms .list-group-item').css('background-color', '');
+      
       if(roomId){
-        // Light blue background color for rooms sidebar
-        $roomsContainer.css('background-color', '#e7f3ff');
-      } else {
-        // Default white background when no room selected
-        $roomsContainer.css('background-color', '#ffffff');
+        // Highlight the selected room item with light blue background
+        $('#rooms .list-group-item').each(function(){
+          const $item = $(this);
+          const $link = $item.find('a');
+          if($link.length && $link.data('room-id') == roomId){
+            $item.css('background-color', '#e7f3ff');
+          }
+        });
       }
     }
 
@@ -409,7 +414,13 @@
         list.forEach(r => {
           const $li = $('<li/>').addClass('list-group-item d-flex justify-content-between align-items-center');
           const $left = $('<div/>').addClass('d-flex align-items-center flex-grow-1');
-          const $a = $('<a/>').attr('href', '#').text(r.name).css({'text-decoration':'none', 'flex-grow':'1'});
+          const $a = $('<a/>').attr('href', '#').text(r.name).css({'text-decoration':'none', 'flex-grow':'1'}).data('room-id', r.id);
+          
+          // Highlight selected room
+          if(r.id === currentRoomId){
+            $li.css('background-color', '#e7f3ff');
+          }
+          
           $a.on('click', async (e) => {
             e.preventDefault();
             await fetchJSON(`/rooms/${r.id}/join`, {method:'POST'});
