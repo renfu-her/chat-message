@@ -284,6 +284,7 @@
     const $members = $('#members');
     const $membersMobile = $('#members-mobile');
     const $roomSelectMobile = $('#room-select-mobile');
+    const $roomsContainer = $('.col-md-3.d-none.d-md-block'); // Rooms sidebar container
     let currentRoomId = null;
     let socket = null;
     let onlineUserIds = new Set(); // Track online user IDs
@@ -295,6 +296,17 @@
         return `<img src="/auth/uploads/${imageUrl}" style="width:${size}px; height:${size}px; border-radius:50%; object-fit:cover; border:2px solid #dee2e6;" />`;
       } else {
         return `<div style="width:${size}px; height:${size}px; border-radius:50%; background:#f8f9fa; border:2px solid #dee2e6; display:flex; align-items:center; justify-content:center;"><i class="fas fa-user text-muted"></i></div>`;
+      }
+    }
+
+    // Change room sidebar background to light blue when room is selected
+    function changeRoomBackground(roomId){
+      if(roomId){
+        // Light blue background color for rooms sidebar
+        $roomsContainer.css('background-color', '#e7f3ff');
+      } else {
+        // Default white background when no room selected
+        $roomsContainer.css('background-color', '#ffffff');
       }
     }
 
@@ -406,6 +418,7 @@
             $title.text(r.name);
             currentRoomId = r.id;
             $roomSelectMobile.val(r.id);
+            changeRoomBackground(r.id);
           });
           $left.append($a);
           
@@ -442,6 +455,12 @@
           }
           $roomSelectMobile.append($option);
         });
+        // Apply background color if a room is already selected
+        if(currentRoomId){
+          changeRoomBackground(currentRoomId);
+        } else {
+          changeRoomBackground(null);
+        }
         // Update input position after layout changes
         setTimeout(function(){
           positionChatInput();
@@ -497,6 +516,7 @@
           append('Room was deleted.');
           currentRoomId = null;
           $title.text('Select a room');
+          changeRoomBackground(null);
         }
         // Refresh rooms list
         loadRooms();
@@ -506,6 +526,7 @@
           append('Room was closed.');
           currentRoomId = null;
           $title.text('Select a room');
+          changeRoomBackground(null);
         }
         // Refresh rooms list
         loadRooms();
@@ -613,7 +634,11 @@
           loadMessages(roomId);
           $title.text(room.name);
           currentRoomId = roomId;
+          changeRoomBackground(roomId);
         }
+      } else {
+        // Reset to default when no room selected
+        changeRoomBackground(null);
       }
     });
     
