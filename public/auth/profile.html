@@ -46,7 +46,7 @@
     function updateAvatarPreview(imageUrl){
       const $preview = $('#avatar-preview');
       if(imageUrl){
-        $preview.html(`<img src="/auth/uploads/${imageUrl}" style="width:100%; height:100%; object-fit:cover;" />`);
+        $preview.html(`<img src="/assets/uploads/${imageUrl}" style="width:100%; height:100%; object-fit:cover;" />`);
       } else {
         $preview.html('<i class="fas fa-user fa-3x text-muted"></i>');
       }

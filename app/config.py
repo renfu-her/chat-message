@@ -26,7 +26,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", db_url)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, "assets", "upload")
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, "assets", "uploads")
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2MB max file size
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
     

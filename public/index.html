@@ -292,7 +292,7 @@
 
     function getAvatarHtml(imageUrl, size = 40){
       if(imageUrl){
-        return `<img src="/auth/uploads/${imageUrl}" style="width:${size}px; height:${size}px; border-radius:50%; object-fit:cover; border:2px solid #dee2e6;" />`;
+        return `<img src="/assets/uploads/${imageUrl}" style="width:${size}px; height:${size}px; border-radius:50%; object-fit:cover; border:2px solid #dee2e6;" />`;
       } else {
         return `<div style="width:${size}px; height:${size}px; border-radius:50%; background:#f8f9fa; border:2px solid #dee2e6; display:flex; align-items:center; justify-content:center;"><i class="fas fa-user text-muted"></i></div>`;
       }

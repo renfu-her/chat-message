@@ -25,6 +25,7 @@ with app.app_context():
     upload_folder = app.config["UPLOAD_FOLDER"]
     print(f"   上傳目錄: {upload_folder}")
     print(f"   絕對路徑: {os.path.abspath(upload_folder)}")
+    print(f"   預期路徑: assets/uploads (複數)")
     
     # 2. 檢查目錄是否存在
     print("\n2. 目錄檢查:")
@@ -76,6 +77,10 @@ with app.app_context():
         print("   找到以下路由:")
         for route in routes:
             print(f"   - {route}")
+        if any('/assets/uploads/' in r.rule for r in app.url_map.iter_rules()):
+            print("   ✓ 找到正確的路由: /assets/uploads/<filename>")
+        else:
+            print("   ✗ 未找到正確的路由: /assets/uploads/<filename>")
     else:
         print("   ✗ 未找到 uploads 路由")
     

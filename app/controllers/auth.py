@@ -26,25 +26,6 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in current_app.config["ALLOWED_EXTENSIONS"]
 
 
-@bp.get("/uploads/<filename>")
-def uploaded_file(filename):
-    """Serve uploaded images"""
-    upload_folder = current_app.config["UPLOAD_FOLDER"]
-    filepath = os.path.join(upload_folder, filename)
-    
-    # Check if file exists
-    if not os.path.exists(filepath):
-        current_app.logger.warning(f"Image not found: {filepath}")
-        return jsonify({"error": "Image not found"}), 404
-    
-    # Security: ensure filename doesn't contain path traversal
-    if os.path.dirname(os.path.abspath(filepath)) != os.path.abspath(upload_folder):
-        current_app.logger.warning(f"Path traversal attempt: {filename}")
-        return jsonify({"error": "Invalid filename"}), 400
-    
-    return send_from_directory(upload_folder, filename)
-
-
 @bp.get("/login")
 def login_view():
     return render_template("auth/login.html")
