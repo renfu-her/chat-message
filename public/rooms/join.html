@@ -23,7 +23,12 @@
             <div id="password-form" style="display:none;">
               <div class="mb-3">
                 <label for="room-password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="room-password" placeholder="Enter room password" />
+                <div class="input-group">
+                  <input type="password" class="form-control" id="room-password" placeholder="Enter room password" />
+                  <button class="btn btn-outline-secondary" type="button" id="toggle-room-password-btn">
+                    <i class="fas fa-eye" id="room-password-eye-icon"></i>
+                  </button>
+                </div>
                 <small class="text-muted">This is a private room. Password is required.</small>
               </div>
               <button class="btn btn-primary w-100" id="join-btn">Join Room</button>
@@ -154,6 +159,23 @@
     
     $('#join-btn-public').on('click', function(){
       joinRoom();
+    });
+    
+    // Toggle password visibility
+    function togglePasswordVisibility(inputId, iconId){
+      const $input = $(inputId);
+      const $icon = $(iconId);
+      if($input.attr('type') === 'password'){
+        $input.attr('type', 'text');
+        $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+      } else {
+        $input.attr('type', 'password');
+        $icon.removeClass('fa-eye-slash').addClass('fa-eye');
+      }
+    }
+    
+    $('#toggle-room-password-btn').on('click', function(){
+      togglePasswordVisibility('#room-password', '#room-password-eye-icon');
     });
     
     // Allow Enter key to submit

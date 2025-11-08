@@ -22,7 +22,12 @@
               </div>
               <div>
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" placeholder="••••••••" required />
+                <div class="input-group">
+                  <input type="password" class="form-control" id="password" placeholder="••••••••" required />
+                  <button class="btn btn-outline-secondary" type="button" id="toggle-login-password-btn">
+                    <i class="fas fa-eye" id="login-password-eye-icon"></i>
+                  </button>
+                </div>
               </div>
               <button type="submit" class="btn btn-primary">Login</button>
               <div id="login-msg"></div>
@@ -40,7 +45,12 @@
               </div>
               <div>
                 <label for="reg-password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="reg-password" placeholder="••••••••" required />
+                <div class="input-group">
+                  <input type="password" class="form-control" id="reg-password" placeholder="••••••••" required />
+                  <button class="btn btn-outline-secondary" type="button" id="toggle-reg-password-btn">
+                    <i class="fas fa-eye" id="reg-password-eye-icon"></i>
+                  </button>
+                </div>
               </div>
               <button type="submit" class="btn btn-success">Register</button>
               <div id="register-msg"></div>
@@ -130,6 +140,27 @@
       } catch (err){
         $('#register-msg').addClass('alert alert-danger').text(err.message || 'Registration failed, please try again');
       }
+    });
+    
+    // Toggle password visibility
+    function togglePasswordVisibility(inputId, iconId){
+      const $input = $(inputId);
+      const $icon = $(iconId);
+      if($input.attr('type') === 'password'){
+        $input.attr('type', 'text');
+        $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+      } else {
+        $input.attr('type', 'password');
+        $icon.removeClass('fa-eye-slash').addClass('fa-eye');
+      }
+    }
+    
+    $('#toggle-login-password-btn').on('click', function(){
+      togglePasswordVisibility('#password', '#login-password-eye-icon');
+    });
+    
+    $('#toggle-reg-password-btn').on('click', function(){
+      togglePasswordVisibility('#reg-password', '#reg-password-eye-icon');
     });
   });
   </script>

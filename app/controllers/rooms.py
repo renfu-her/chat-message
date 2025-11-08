@@ -42,21 +42,36 @@ def _require_room_member(room: Room):
 def list_rooms():
     # Filter rooms based on privacy:
     # - Public rooms: visible to all authenticated users
-    # - Private rooms: visible only to creator and admins
+    # - Private rooms: visible to creator, admins, and members who joined via invitation
     if current_user.role == "admin":
         # Admins can see all rooms
         rooms = Room.query.filter_by(is_active=True).order_by(Room.name.asc()).all()
     else:
-        # Regular users: public rooms + private rooms they created
+        # Get user's memberships to include private rooms they joined
+        user_memberships = {m.room_id for m in RoomMembership.query.filter_by(user_id=current_user.id).all()}
+        
+        # Regular users: public rooms + private rooms they created + private rooms they joined
+        # Build query conditions
+        conditions = [
+            Room.room_type == 'public',
+            Room.created_by == current_user.id
+        ]
+        
+        # Add condition for private rooms user joined
+        if user_memberships:
+            conditions.append(
+                db.and_(
+                    Room.room_type == 'private',
+                    Room.id.in_(list(user_memberships))
+                )
+            )
+        
         rooms = Room.query.filter(
             Room.is_active == True,
-            db.or_(
-                Room.room_type == 'public',
-                Room.created_by == current_user.id
-            )
+            db.or_(*conditions)
         ).order_by(Room.name.asc()).all()
     
-    # Get user's memberships
+    # Get user's memberships (re-fetch for response)
     user_memberships = {m.room_id for m in RoomMembership.query.filter_by(user_id=current_user.id).all()}
     return jsonify([
         {
