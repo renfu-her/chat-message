@@ -184,7 +184,27 @@
       <div class="collapse mt-2" id="create-room-form">
         <div class="card card-body">
           <input type="text" id="new-room-name" class="form-control form-control-sm mb-2" placeholder="Room name" />
+          <select id="new-room-type" class="form-select form-select-sm mb-2">
+            <option value="public">Public Room</option>
+            <option value="private">Private Room</option>
+          </select>
+          <div id="room-password-container" style="display:none;">
+            <input type="password" id="new-room-password" class="form-control form-control-sm mb-2" placeholder="Password (optional)" />
+          </div>
           <button class="btn btn-sm btn-success w-100" id="create-room-btn">Create</button>
+          <div id="room-created-info" class="mt-2" style="display:none;">
+            <small class="text-muted">Room created!</small>
+            <div class="mt-1">
+              <small><strong>Room No:</strong> <span id="created-room-no"></span></small><br>
+              <small><strong>Invitation Link:</strong></small>
+              <div class="input-group input-group-sm mt-1">
+                <input type="text" id="created-invitation-link" class="form-control form-control-sm" readonly />
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="copy-link-btn">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -209,7 +229,27 @@
     <div class="collapse mt-1" id="create-room-form-mobile">
       <div class="card card-body">
         <input type="text" id="new-room-name-mobile" class="form-control form-control-sm mb-2" placeholder="Room name" />
+        <select id="new-room-type-mobile" class="form-select form-select-sm mb-2">
+          <option value="public">Public Room</option>
+          <option value="private">Private Room</option>
+        </select>
+        <div id="room-password-container-mobile" style="display:none;">
+          <input type="password" id="new-room-password-mobile" class="form-control form-control-sm mb-2" placeholder="Password (optional)" />
+        </div>
         <button class="btn btn-sm btn-success w-100" id="create-room-btn-mobile">Create</button>
+        <div id="room-created-info-mobile" class="mt-2" style="display:none;">
+          <small class="text-muted">Room created!</small>
+          <div class="mt-1">
+            <small><strong>Room No:</strong> <span id="created-room-no-mobile"></span></small><br>
+            <small><strong>Invitation Link:</strong></small>
+            <div class="input-group input-group-sm mt-1">
+              <input type="text" id="created-invitation-link-mobile" class="form-control form-control-sm" readonly />
+              <button class="btn btn-outline-secondary btn-sm" type="button" id="copy-link-btn-mobile">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -414,7 +454,17 @@
         list.forEach(r => {
           const $li = $('<li/>').addClass('list-group-item d-flex justify-content-between align-items-center');
           const $left = $('<div/>').addClass('d-flex align-items-center flex-grow-1');
+          const $roomInfo = $('<div/>').addClass('d-flex flex-column flex-grow-1');
           const $a = $('<a/>').attr('href', '#').text(r.name).css({'text-decoration':'none', 'flex-grow':'1'}).data('room-id', r.id);
+          
+          // Add room type badge
+          const $badge = $('<span/>').addClass('badge ms-1').text(r.room_type === 'private' ? 'Private' : 'Public');
+          if(r.room_type === 'private'){
+            $badge.addClass('bg-warning text-dark');
+          } else {
+            $badge.addClass('bg-info');
+          }
+          $a.append($badge);
           
           // Highlight selected room
           if(r.id === currentRoomId){
@@ -431,7 +481,23 @@
             $roomSelectMobile.val(r.id);
             changeRoomBackground(r.id);
           });
-          $left.append($a);
+          $roomInfo.append($a);
+          
+          // Show invitation link button for room creators
+          if(r.is_creator && r.invitation_link){
+            const $linkBtn = $('<button/>')
+              .addClass('btn btn-sm btn-link p-0 ms-2')
+              .attr('title', 'Copy invitation link')
+              .html('<i class="fas fa-link text-primary"></i>')
+              .css('font-size', '0.8rem');
+            $linkBtn.on('click', function(e){
+              e.stopPropagation();
+              copyToClipboard(window.location.origin + r.invitation_link, this);
+            });
+            $roomInfo.append($linkBtn);
+          }
+          
+          $left.append($roomInfo);
           
           // Show management buttons only if user is a member of the room
           if(currentUserId && r.is_member){
@@ -460,7 +526,7 @@
           $rooms.append($li);
           
           // Add to mobile dropdown
-          const $option = $('<option/>').val(r.id).text(r.name);
+          const $option = $('<option/>').val(r.id).text(r.name + (r.room_type === 'private' ? ' (Private)' : ''));
           if(r.id === currentRoomId){
             $option.prop('selected', true);
           }
@@ -582,6 +648,49 @@
       }
     })();
     
+    // Toggle password field based on room type
+    $('#new-room-type').on('change', function(){
+      if($(this).val() === 'private'){
+        $('#room-password-container').show();
+      } else {
+        $('#room-password-container').hide();
+        $('#new-room-password').val('');
+      }
+    });
+    
+    $('#new-room-type-mobile').on('change', function(){
+      if($(this).val() === 'private'){
+        $('#room-password-container-mobile').show();
+      } else {
+        $('#room-password-container-mobile').hide();
+        $('#new-room-password-mobile').val('');
+      }
+    });
+    
+    // Copy link functionality
+    function copyToClipboard(text, buttonId){
+      navigator.clipboard.writeText(text).then(function(){
+        const $btn = $(buttonId);
+        const originalHtml = $btn.html();
+        $btn.html('<i class="fas fa-check"></i>').removeClass('btn-outline-secondary').addClass('btn-success');
+        setTimeout(function(){
+          $btn.html(originalHtml).removeClass('btn-success').addClass('btn-outline-secondary');
+        }, 2000);
+      }).catch(function(){
+        alert('Failed to copy to clipboard');
+      });
+    }
+    
+    $('#copy-link-btn').on('click', function(){
+      const link = $('#created-invitation-link').val();
+      copyToClipboard(window.location.origin + link, '#copy-link-btn');
+    });
+    
+    $('#copy-link-btn-mobile').on('click', function(){
+      const link = $('#created-invitation-link-mobile').val();
+      copyToClipboard(window.location.origin + link, '#copy-link-btn-mobile');
+    });
+    
     // Create room handler (desktop)
     $('#create-room-btn').on('click', async function(){
       const name = $('#new-room-name').val();
@@ -589,17 +698,42 @@
         alert('Please enter a room name');
         return;
       }
+      const roomType = $('#new-room-type').val();
+      const password = $('#new-room-password').val();
+      
       try {
+        const body = {
+          name: name.trim(),
+          room_type: roomType
+        };
+        if(roomType === 'private' && password){
+          body.password = password;
+        }
+        
         const res = await fetch('/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({name: name.trim()})
+          body: JSON.stringify(body)
         });
         const data = await res.json();
         if(res.ok){
+          // Show room info
+          $('#created-room-no').text(data.room_no);
+          $('#created-invitation-link').val(data.invitation_link);
+          $('#room-created-info').show();
+          
           $('#new-room-name').val('');
-          $('#create-room-form').collapse('hide');
+          $('#new-room-password').val('');
+          $('#new-room-type').val('public');
+          $('#room-password-container').hide();
+          
           loadRooms();
+          
+          // Hide info after 10 seconds
+          setTimeout(function(){
+            $('#room-created-info').hide();
+            $('#create-room-form').collapse('hide');
+          }, 10000);
         } else {
           alert(data.error || 'Failed to create room');
         }
@@ -615,17 +749,42 @@
         alert('Please enter a room name');
         return;
       }
+      const roomType = $('#new-room-type-mobile').val();
+      const password = $('#new-room-password-mobile').val();
+      
       try {
+        const body = {
+          name: name.trim(),
+          room_type: roomType
+        };
+        if(roomType === 'private' && password){
+          body.password = password;
+        }
+        
         const res = await fetch('/rooms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({name: name.trim()})
+          body: JSON.stringify(body)
         });
         const data = await res.json();
         if(res.ok){
+          // Show room info
+          $('#created-room-no-mobile').text(data.room_no);
+          $('#created-invitation-link-mobile').val(data.invitation_link);
+          $('#room-created-info-mobile').show();
+          
           $('#new-room-name-mobile').val('');
-          $('#create-room-form-mobile').collapse('hide');
+          $('#new-room-password-mobile').val('');
+          $('#new-room-type-mobile').val('public');
+          $('#room-password-container-mobile').hide();
+          
           loadRooms();
+          
+          // Hide info after 10 seconds
+          setTimeout(function(){
+            $('#room-created-info-mobile').hide();
+            $('#create-room-form-mobile').collapse('hide');
+          }, 10000);
         } else {
           alert(data.error || 'Failed to create room');
         }

@@ -12,6 +12,13 @@ def index():
     return render_template("index.html")
 
 
+@bp.get("/rooms/join/<room_no>")
+@login_required
+def join_room_page(room_no: str):
+    """Render the join room page"""
+    return render_template("rooms/join.html")
+
+
 @bp.get("/assets/uploads/<filename>")
 def uploaded_file(filename):
     """Serve uploaded images from assets/uploads"""

@@ -43,6 +43,29 @@ def create_app() -> Flask:
             if "is_active" not in room_columns:
                 db.session.execute(text("ALTER TABLE rooms ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE"))
                 db.session.commit()
+            if "room_no" not in room_columns:
+                db.session.execute(text("ALTER TABLE rooms ADD COLUMN room_no VARCHAR(50) NULL"))
+                db.session.commit()
+                # Create index for room_no
+                try:
+                    db.session.execute(text("CREATE INDEX ix_rooms_room_no ON rooms(room_no)"))
+                    db.session.commit()
+                except Exception:
+                    pass  # Index might already exist
+            if "room_type" not in room_columns:
+                db.session.execute(text("ALTER TABLE rooms ADD COLUMN room_type VARCHAR(20) NOT NULL DEFAULT 'public'"))
+                db.session.commit()
+            if "password_hash" not in room_columns:
+                db.session.execute(text("ALTER TABLE rooms ADD COLUMN password_hash VARCHAR(255) NULL"))
+                db.session.commit()
+            
+            # Generate room_no for existing rooms that don't have one
+            from .models.room import Room, generate_room_no
+            rooms_without_no = Room.query.filter_by(room_no=None).all()
+            for room in rooms_without_no:
+                room.room_no = generate_room_no(db.session)
+            if rooms_without_no:
+                db.session.commit()
         except Exception:
             # Soft-fail; continue startup and allow manual migration if needed
             pass

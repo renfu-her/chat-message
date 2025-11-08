@@ -113,6 +113,9 @@ This creates example member accounts (`alice@example.com`, `bob@example.com`) wi
 ### Rooms
 - GET `/rooms`, POST `/rooms/<id>/join`, POST `/rooms/<id>/leave`
 - GET `/rooms/<id>/messages?before=<iso>&limit=50`
+- POST `/rooms` - Create room (supports `room_type` and `password`)
+- POST `/rooms/join/<room_no>` - Join room by room_no (with password for private rooms)
+- GET `/rooms/info/<room_no>` - Get room information by room_no
 - Admin: POST `/admin/rooms`, PUT `/admin/rooms/<id>`, DELETE `/admin/rooms/<id>`
 
 ### Feedback
@@ -131,7 +134,7 @@ This creates example member accounts (`alice@example.com`, `bob@example.com`) wi
 
 The application uses the following tables:
 - `users` - User accounts (email, password_hash, name, role, image)
-- `rooms` - Chat rooms (name, created_by, is_active)
+- `rooms` - Chat rooms (name, room_no, room_type, password_hash, created_by, is_active)
 - `room_memberships` - User-room relationships (user_id, room_id, joined_at)
 - `messages` - Chat messages (room_id, author_id, content, created_at)
 - `feedbacks` - User feedback submissions (name, email, subject, message, user_id, created_at)
@@ -178,4 +181,59 @@ If email is not configured or fails, feedback submissions will still be saved to
 - Table structure is automatically created - no manual SQL scripts needed.
 - For production, configure CORS and session security settings in `.env`.
 - Feedback email notifications require proper SMTP configuration in `.env`.
+
+## Changelog
+
+### Private Room Feature (Latest Update)
+
+#### Database Changes
+- Added `room_no` field to `rooms` table: Unique identifier combining UUID7 + random shuffled text (e.g., "HezRiD56610")
+- Added `room_type` field: Supports `'public'` or `'private'` room types (default: `'public'`)
+- Added `password_hash` field: Optional password protection for private rooms (bcrypt hashed)
+- Automatic migration: Existing rooms are automatically assigned `room_no` and default to `'public'` type
+
+#### Backend API Updates
+- **POST `/rooms`**: Enhanced to support room creation with:
+  - `room_type`: `'public'` or `'private'`
+  - `password`: Optional password for private rooms
+  - Returns `room_no` and `invitation_link` in response
+- **GET `/rooms`**: Updated with privacy filtering:
+  - Public rooms: Visible to all authenticated users
+  - Private rooms: Visible only to creator and admins
+  - Response includes `room_no`, `room_type`, `is_creator`, and `invitation_link`
+- **POST `/rooms/join/<room_no>`**: New endpoint to join rooms by `room_no`:
+  - Supports password validation for private rooms
+  - Request body: `{ "password": "..." }` (required for password-protected private rooms)
+- **GET `/rooms/info/<room_no>`**: New endpoint to get room information by `room_no`
+- **PUT `/rooms/<room_id>`**: Enhanced to support updating:
+  - `room_type`: Change between public/private
+  - `password`: Set or remove password for private rooms
+
+#### Frontend Updates
+- **Room Creation Form**:
+  - Added room type selector (Public/Private)
+  - Added password input field (shown when Private is selected)
+  - Displays generated `room_no` and invitation link after creation
+  - Copy-to-clipboard functionality for invitation links
+- **Room List**:
+  - Shows room type badges (Public/Private)
+  - Displays invitation link button for room creators
+  - Filters private rooms based on user permissions
+- **Join Room Page**: New page at `/rooms/join/<room_no>`:
+  - Shows room information
+  - Password input for private rooms
+  - Handles join logic with password validation
+  - Redirects to main chat after successful join
+
+#### Security Features
+- Private rooms are only visible to creators and admins
+- Password-protected private rooms require password to join
+- Passwords are hashed using bcrypt (12 rounds)
+- Path traversal protection for room_no routes
+
+#### Technical Details
+- `room_no` generation: Random 6-8 character prefix + 6-character UUID7 suffix
+- Uniqueness checking: Automatic retry with fallback mechanism
+- Backward compatibility: Existing rooms automatically get `room_no` and default to `'public'`
+- All error messages translated to English
 

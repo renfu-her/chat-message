@@ -1,0 +1,171 @@
+{% extends "app.html" %}
+{% block title %}Join Room{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Join Room</h5>
+        </div>
+        <div class="card-body">
+          <div id="loading" class="text-center">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading room information...</p>
+          </div>
+          
+          <div id="room-info" style="display:none;">
+            <h6 id="room-name"></h6>
+            <p class="text-muted mb-3" id="room-description"></p>
+            
+            <div id="password-form" style="display:none;">
+              <div class="mb-3">
+                <label for="room-password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="room-password" placeholder="Enter room password" />
+                <small class="text-muted">This is a private room. Password is required.</small>
+              </div>
+              <button class="btn btn-primary w-100" id="join-btn">Join Room</button>
+            </div>
+            
+            <div id="public-join" style="display:none;">
+              <button class="btn btn-primary w-100" id="join-btn-public">Join Room</button>
+            </div>
+            
+            <div id="error-message" class="alert alert-danger mt-3" style="display:none;"></div>
+            <div id="success-message" class="alert alert-success mt-3" style="display:none;">
+              Successfully joined! Redirecting...
+            </div>
+          </div>
+          
+          <div id="not-found" style="display:none;">
+            <div class="alert alert-warning">
+              <h6>Room Not Found</h6>
+              <p>The room you're looking for doesn't exist or has been closed.</p>
+              <a href="/" class="btn btn-primary">Go to Home</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  $(function(){
+    // Extract room_no from URL
+    const pathParts = window.location.pathname.split('/');
+    const roomNo = pathParts[pathParts.length - 1];
+    
+    if(!roomNo){
+      $('#loading').hide();
+      $('#not-found').show();
+      return;
+    }
+    
+    let roomInfo = null;
+    
+    // Load room information
+    async function loadRoomInfo(){
+      try {
+        const res = await fetch(`/rooms/info/${roomNo}`);
+        if(res.status === 404){
+          $('#loading').hide();
+          $('#not-found').show();
+          return;
+        }
+        
+        const data = await res.json();
+        roomInfo = data;
+        
+        $('#loading').hide();
+        $('#room-info').show();
+        
+        $('#room-name').text(data.name);
+        
+        if(data.room_type === 'private'){
+          $('#room-description').text('This is a private room.');
+          if(data.requires_password){
+            $('#password-form').show();
+          } else {
+            $('#public-join').show();
+          }
+        } else {
+          $('#room-description').text('This is a public room.');
+          $('#public-join').show();
+        }
+        
+        // Check if already a member
+        if(data.is_member){
+          $('#success-message').text('You are already a member of this room. Redirecting...').show();
+          setTimeout(function(){
+            window.location.href = '/';
+          }, 2000);
+        }
+      } catch(e){
+        $('#loading').hide();
+        $('#error-message').text('Failed to load room information: ' + e.message).show();
+      }
+    }
+    
+    // Join room handler
+    async function joinRoom(password){
+      try {
+        const body = {};
+        if(password){
+          body.password = password;
+        }
+        
+        const res = await fetch(`/rooms/join/${roomNo}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        
+        const data = await res.json();
+        
+        if(res.ok){
+          $('#error-message').hide();
+          $('#success-message').show();
+          $('#password-form').hide();
+          $('#public-join').hide();
+          
+          setTimeout(function(){
+            window.location.href = '/';
+          }, 1500);
+        } else {
+          $('#error-message').text(data.error || 'Failed to join room').show();
+        }
+      } catch(e){
+        $('#error-message').text('Failed to join room: ' + e.message).show();
+      }
+    }
+    
+    $('#join-btn').on('click', function(){
+      const password = $('#room-password').val();
+      if(!password || !password.trim()){
+        $('#error-message').text('Password is required').show();
+        return;
+      }
+      joinRoom(password.trim());
+    });
+    
+    $('#join-btn-public').on('click', function(){
+      joinRoom();
+    });
+    
+    // Allow Enter key to submit
+    $('#room-password').on('keypress', function(e){
+      if(e.which === 13){
+        $('#join-btn').click();
+      }
+    });
+    
+    // Load room info on page load
+    loadRoomInfo();
+  });
+</script>
+{% endblock %}
+

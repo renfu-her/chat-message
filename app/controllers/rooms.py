@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from ..extensions import db
-from ..models.room import Room
+from ..models.room import Room, generate_room_no
 from ..models.membership import RoomMembership
 from ..models.user import User
 from ..extensions import socketio
@@ -21,35 +21,54 @@ def _require_admin():
 
 def _require_room_owner(room: Room):
     if not current_user.is_authenticated:
-        return jsonify({"error": "需要登入"}), 401
+        return jsonify({"error": "Login required"}), 401
     if room.created_by != current_user.id and current_user.role != "admin":
-        return jsonify({"error": "只有房間創建者可以操作"}), 403
+        return jsonify({"error": "Only room creator can perform this action"}), 403
     return None
 
 
 def _require_room_member(room: Room):
     if not current_user.is_authenticated:
-        return jsonify({"error": "需要登入"}), 401
+        return jsonify({"error": "Login required"}), 401
     # Check if user is a member of the room
     membership = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room.id).first()
     if not membership and current_user.role != "admin":
-        return jsonify({"error": "只有房間成員可以操作"}), 403
+        return jsonify({"error": "Only room members can perform this action"}), 403
     return None
 
 
 @bp.get("/rooms")
 @login_required
 def list_rooms():
-    rooms = Room.query.filter_by(is_active=True).order_by(Room.name.asc()).all()
+    # Filter rooms based on privacy:
+    # - Public rooms: visible to all authenticated users
+    # - Private rooms: visible only to creator and admins
+    if current_user.role == "admin":
+        # Admins can see all rooms
+        rooms = Room.query.filter_by(is_active=True).order_by(Room.name.asc()).all()
+    else:
+        # Regular users: public rooms + private rooms they created
+        rooms = Room.query.filter(
+            Room.is_active == True,
+            db.or_(
+                Room.room_type == 'public',
+                Room.created_by == current_user.id
+            )
+        ).order_by(Room.name.asc()).all()
+    
     # Get user's memberships
     user_memberships = {m.room_id for m in RoomMembership.query.filter_by(user_id=current_user.id).all()}
     return jsonify([
         {
             "id": r.id,
             "name": r.name,
+            "room_no": r.room_no,
+            "room_type": r.room_type,
             "created_by": r.created_by,
             "created_at": r.created_at.isoformat(),
-            "is_member": r.id in user_memberships
+            "is_member": r.id in user_memberships,
+            "is_creator": r.created_by == current_user.id,
+            "invitation_link": r.get_invitation_link()
         }
         for r in rooms
     ])
@@ -60,7 +79,7 @@ def list_rooms():
 def join_room_api(room_id: int):
     room = Room.query.get_or_404(room_id)
     if not room.is_active:
-        return jsonify({"error": "房間已關閉"}), 400
+        return jsonify({"error": "Room is closed"}), 400
     exists = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room.id).first()
     if exists:
         return jsonify({"ok": True, "joined": True})
@@ -109,10 +128,37 @@ def create_room():
         return jsonify({"error": "name required"}), 400
     if Room.query.filter_by(name=name).first():
         return jsonify({"error": "name exists"}), 409
-    room = Room(name=name, created_by=current_user.id)
+    
+    room_type = data.get("room_type", "public")
+    if room_type not in ["public", "private"]:
+        return jsonify({"error": "room_type must be 'public' or 'private'"}), 400
+    
+    password = data.get("password", "").strip()
+    
+    # Generate room_no
+    room_no = generate_room_no(db.session)
+    
+    room = Room(
+        name=name,
+        room_no=room_no,
+        room_type=room_type,
+        created_by=current_user.id
+    )
+    
+    # Set password if provided for private room
+    if room_type == "private" and password:
+        room.set_password(password)
+    
     db.session.add(room)
     db.session.commit()
-    return jsonify({"id": room.id, "name": room.name}), 201
+    
+    return jsonify({
+        "id": room.id,
+        "name": room.name,
+        "room_no": room.room_no,
+        "room_type": room.room_type,
+        "invitation_link": room.get_invitation_link()
+    }), 201
 
 
 @bp.put("/rooms/<int:room_id>")
@@ -123,14 +169,45 @@ def update_room(room_id: int):
     if err:
         return err
     data = request.get_json(silent=True) or {}
-    name = (data.get("name") or "").strip()
-    if not name:
-        return jsonify({"error": "name required"}), 400
-    if Room.query.filter(Room.id != room.id, Room.name == name).first():
-        return jsonify({"error": "name exists"}), 409
-    room.name = name
+    
+    # Update name if provided
+    if "name" in data:
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"error": "name required"}), 400
+        if Room.query.filter(Room.id != room.id, Room.name == name).first():
+            return jsonify({"error": "name exists"}), 409
+        room.name = name
+    
+    # Update room_type if provided
+    if "room_type" in data:
+        room_type = data.get("room_type")
+        if room_type not in ["public", "private"]:
+            return jsonify({"error": "room_type must be 'public' or 'private'"}), 400
+        room.room_type = room_type
+        # Clear password if switching to public
+        if room_type == "public":
+            room.password_hash = None
+    
+    # Update password if provided
+    if "password" in data:
+        password = data.get("password", "").strip()
+        if password:
+            if room.room_type != "private":
+                return jsonify({"error": "password can only be set for private rooms"}), 400
+            room.set_password(password)
+        elif room.room_type == "private":
+            # Empty password means remove password protection
+            room.password_hash = None
+    
     db.session.commit()
-    return jsonify({"id": room.id, "name": room.name})
+    return jsonify({
+        "id": room.id,
+        "name": room.name,
+        "room_no": room.room_no,
+        "room_type": room.room_type,
+        "invitation_link": room.get_invitation_link()
+    })
 
 
 @bp.post("/rooms/<int:room_id>/close")
@@ -165,6 +242,89 @@ def delete_room(room_id: int):
     # Force clients out of the room on server side
     socketio.close_room(rk, namespace="/chat")
     return jsonify({"ok": True, "room_deleted": room_id})
+
+
+# Room join by room_no endpoints
+@bp.get("/rooms/info/<room_no>")
+@login_required
+def get_room_info(room_no: str):
+    """Get room information by room_no"""
+    room = Room.query.filter_by(room_no=room_no, is_active=True).first_or_404()
+    
+    # Check access permissions
+    is_creator = room.created_by == current_user.id
+    is_admin = current_user.role == "admin"
+    is_member = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room.id).first() is not None
+    
+    # For private rooms, only creator/admin can see full info
+    if room.room_type == "private" and not (is_creator or is_admin):
+        return jsonify({
+            "id": room.id,
+            "name": room.name,
+            "room_no": room.room_no,
+            "room_type": room.room_type,
+            "requires_password": room.password_hash is not None,
+            "is_member": is_member
+        })
+    
+    return jsonify({
+        "id": room.id,
+        "name": room.name,
+        "room_no": room.room_no,
+        "room_type": room.room_type,
+        "created_by": room.created_by,
+        "created_at": room.created_at.isoformat(),
+        "requires_password": room.password_hash is not None,
+        "is_member": is_member,
+        "is_creator": is_creator,
+        "invitation_link": room.get_invitation_link()
+    })
+
+
+@bp.post("/rooms/join/<room_no>")
+@login_required
+def join_room_by_no(room_no: str):
+    """Join a room by room_no (with password validation for private rooms)"""
+    room = Room.query.filter_by(room_no=room_no, is_active=True).first_or_404()
+    
+    if not room.is_active:
+        return jsonify({"error": "Room is closed"}), 400
+    
+    # Check if already a member
+    existing_membership = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room.id).first()
+    if existing_membership:
+        return jsonify({
+            "ok": True,
+            "joined": True,
+            "room_id": room.id,
+            "room_name": room.name
+        })
+    
+    # For private rooms, validate password
+    if room.room_type == "private":
+        data = request.get_json(silent=True) or {}
+        password = data.get("password", "").strip()
+        
+        # Check if password is required
+        if room.password_hash:
+            if not password:
+                return jsonify({"error": "Password required for private room"}), 400
+            if not room.check_password(password):
+                return jsonify({"error": "Invalid password"}), 401
+    
+    # Add user to room
+    membership = RoomMembership(user_id=current_user.id, room_id=room.id)
+    db.session.add(membership)
+    db.session.commit()
+    
+    return jsonify({
+        "ok": True,
+        "joined": True,
+        "room_id": room.id,
+        "room_name": room.name,
+        "room_no": room.room_no,
+        "room_type": room.room_type
+    })
 
 
 # Admin endpoints
