@@ -570,10 +570,32 @@
 
     function ensureSocket(){
       if(socket) return;
-      socket = io('/chat');
+      // Configure Socket.IO to send cookies/credentials for session management
+      socket = io('/chat', {
+        withCredentials: true,
+        transports: ['polling', 'websocket'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5
+      });
       socket.on('connect_error', (error) => {
-        // Silently handle connection errors (e.g., when not authenticated)
+        // Silently handle connection errors (e.g., when not authenticated or invalid session)
         console.log('Socket.IO connection error:', error.message);
+        // If session is invalid, try to reconnect after a short delay
+        if(error.message && error.message.includes('Invalid session')) {
+          setTimeout(() => {
+            if(socket && !socket.connected) {
+              socket.disconnect();
+              socket = null;
+              // Re-check authentication before reconnecting
+              fetch('/auth/me').then(res => res.json()).then(data => {
+                if(data.authenticated) {
+                  ensureSocket();
+                }
+              }).catch(() => {});
+            }
+          }, 2000);
+        }
       });
       socket.on('disconnect', (reason) => {
         console.log('Socket.IO disconnected:', reason);

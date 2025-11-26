@@ -8,7 +8,12 @@ from flask_mail import Mail
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-socketio = SocketIO(async_mode="threading", cors_allowed_origins="*")
+socketio = SocketIO(
+    async_mode="threading",
+    cors_allowed_origins="*",
+    logger=True,
+    engineio_logger=False
+)
 mail = Mail()
 
 

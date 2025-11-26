@@ -18,7 +18,13 @@ def _room_key(room_id: int) -> str:
 class ChatNamespace(Namespace):
     def on_connect(self):
         # Session-based auth; reject unauthenticated
-        if not current_user.is_authenticated:
+        try:
+            if not current_user.is_authenticated:
+                return False
+        except Exception as e:
+            # Log any errors accessing current_user (e.g., session issues)
+            import logging
+            logging.getLogger(__name__).warning(f"Socket.IO connect error: {e}")
             return False
         # Add to online users
         online_users[current_user.id] = {
