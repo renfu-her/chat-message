@@ -333,3 +333,86 @@
 
 ---
 
+## 2025-11-26 (最新修正)
+
+### 前端錯誤處理改進與 Socket.IO 連接優化
+
+#### 問題描述
+- Socket.IO 連接持續返回 400 Bad Request 錯誤
+- WebSocket 連接在建立前就被關閉
+- `/auth/me` 端點可能返回錯誤，但仍嘗試連接 Socket.IO
+- `net::ERR_BLOCKED_BY_CLIENT` 錯誤（Cloudflare Insights 被瀏覽器擴展阻止，非應用問題）
+
+#### 修正內容
+
+**1. 認證檢查錯誤處理改進** (`public/index.html`)
+- 在調用 `/auth/me` 後檢查 `res.ok`，只有成功時才處理響應
+- 認證失敗時不嘗試連接 Socket.IO
+- 添加更詳細的日誌訊息以便除錯
+- 確保在認證錯誤時不會嘗試 Socket.IO 連接
+
+**2. `loadRooms` 函數改進** (`public/index.html`)
+- 添加空房間列表的處理
+- 當沒有房間時顯示友好訊息
+- 改進錯誤處理邏輯
+
+**3. `loadMembers` 函數改進** (`public/index.html`)
+- 改進錯誤處理註釋
+- 確保失敗時不會影響其他功能
+
+#### 技術細節
+
+**問題原因：**
+1. 即使 `/auth/me` 返回錯誤（如 400 或 500），前端仍嘗試解析 JSON 並可能觸發 Socket.IO 連接
+2. 缺少對 HTTP 狀態碼的檢查
+3. 錯誤處理不夠嚴格
+
+**解決方案：**
+1. 在處理響應前檢查 HTTP 狀態碼
+2. 只有認證成功時才嘗試連接 Socket.IO
+3. 改進錯誤日誌以便診斷問題
+4. 確保所有錯誤情況都被正確處理
+
+#### 關於 `net::ERR_BLOCKED_BY_CLIENT`
+
+這個錯誤通常是由瀏覽器擴展（如廣告攔截器）阻止 Cloudflare Insights 腳本載入造成的，**不是應用程式的問題**。可以安全地忽略此錯誤。
+
+#### 影響範圍
+- 避免在認證失敗時嘗試 Socket.IO 連接
+- 減少不必要的連接嘗試
+- 改善錯誤診斷能力
+- 提升用戶體驗
+
+#### 相關檔案
+- `public/index.html` - 前端認證檢查和錯誤處理
+
+#### 使用者操作 (User Commands)
+
+**應用此修正後，建議執行以下操作：**
+
+1. **清除瀏覽器快取和 Cookie**
+   - 按 `Ctrl + Shift + Delete` (Windows) 或 `Cmd + Shift + Delete` (Mac)
+   - 選擇清除快取和 Cookie
+   - 或使用無痕模式測試
+
+2. **重新載入應用程式**
+   - 如果使用開發模式：重新啟動 Flask 應用
+     ```bash
+     python wsgi.py
+     ```
+   - 如果使用 uWSGI 生產模式：重新載入 uWSGI
+     ```bash
+     touch /tmp/uwsgi.reload
+     ```
+
+3. **測試認證流程**
+   - 未登入狀態：不應出現 Socket.IO 連接嘗試
+   - 登入後：Socket.IO 應正常連接
+   - 檢查控制台：不應出現大量 400 錯誤
+
+4. **檢查服務器狀態**
+   - 確認 uWSGI 正在運行
+   - 檢查應用日誌以確認是否有錯誤
+
+---
+

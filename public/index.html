@@ -423,7 +423,8 @@
         const list = await fetchJSON('/members');
         renderMembers(list);
       } catch(e){
-        // Silently fail if not logged in
+        // Silently fail if not logged in or server error
+        // Don't show error to user, just leave members list empty
       }
     }
 
@@ -460,6 +461,13 @@
         roomsData = list;
         $rooms.empty();
         $roomSelectMobile.empty().append('<option value="">Select a room</option>');
+        
+        // If no rooms, show message
+        if(list.length === 0){
+          $rooms.append($('<li/>').addClass('list-group-item text-muted').text('No rooms available'));
+          return;
+        }
+        
         
         list.forEach(r => {
           const $li = $('<li/>').addClass('list-group-item d-flex justify-content-between align-items-center');
@@ -712,15 +720,24 @@
     (async function(){
       try {
         const res = await fetch('/auth/me');
+        if(!res.ok) {
+          // If auth check fails, don't attempt Socket.IO connection
+          console.log('Authentication check failed, skipping Socket.IO connection');
+          return;
+        }
         const data = await res.json();
         if(data.authenticated && data.user){
           currentUserId = data.user.id;
           loadRooms(); // Reload rooms to show management buttons
           // Only connect Socket.IO if user is authenticated
           ensureSocket();
+        } else {
+          // User not authenticated, don't attempt connection
+          console.log('User not authenticated, skipping Socket.IO connection');
         }
       } catch(e){
-        // Silently fail
+        // Silently fail - don't attempt Socket.IO connection on error
+        console.log('Error checking authentication, skipping Socket.IO connection:', e);
       }
     })();
     
