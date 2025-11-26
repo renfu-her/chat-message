@@ -19,20 +19,8 @@ class ChatNamespace(Namespace):
     def on_connect(self):
         # Session-based auth; reject unauthenticated
         try:
-            # Import here to avoid circular imports
-            from flask import session
-            from flask_login import current_user
-            
-            # Log session info for debugging (remove in production)
-            import logging
-            logger = logging.getLogger(__name__)
-            
-            # Check if user is authenticated
             if not current_user.is_authenticated:
-                logger.warning(f"Socket.IO connection rejected: user not authenticated. Session ID: {session.get('_id', 'N/A')}")
                 return False
-                
-            logger.info(f"Socket.IO connection accepted: user {current_user.id} ({current_user.email})")
         except Exception as e:
             # Log any errors accessing current_user (e.g., session issues)
             import logging

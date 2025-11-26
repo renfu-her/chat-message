@@ -63,20 +63,24 @@ def logout():
 
 @bp.get("/me")
 def me():
-    if not current_user.is_authenticated:
-        return jsonify({"authenticated": False})
-    return jsonify(
-        {
-            "authenticated": True,
-            "user": {
-                "id": current_user.id,
-                "email": current_user.email,
-                "name": current_user.name,
-                "image": current_user.image,
-                "role": current_user.role,
-            },
-        }
-    )
+    try:
+        if not current_user.is_authenticated:
+            return jsonify({"authenticated": False})
+        return jsonify(
+            {
+                "authenticated": True,
+                "user": {
+                    "id": current_user.id,
+                    "email": current_user.email,
+                    "name": current_user.name,
+                    "image": current_user.image,
+                    "role": current_user.role,
+                },
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error in /auth/me: {e}", exc_info=True)
+        return jsonify({"authenticated": False, "error": "Internal server error"}), 500
 
 
 @bp.post("/register")
