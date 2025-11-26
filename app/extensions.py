@@ -12,7 +12,9 @@ socketio = SocketIO(
     async_mode="threading",
     cors_allowed_origins="*",
     logger=True,
-    engineio_logger=False
+    engineio_logger=False,
+    ping_timeout=60,
+    ping_interval=25
 )
 mail = Mail()
 

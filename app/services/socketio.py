@@ -100,5 +100,12 @@ class ChatNamespace(Namespace):
 
 def register_socketio_namespaces():
     socketio.on_namespace(ChatNamespace("/chat"))
+    
+    # Add global error handler for connection errors
+    @socketio.on_error_default
+    def default_error_handler(e):
+        import logging
+        logging.getLogger(__name__).error(f"Socket.IO error: {e}", exc_info=True)
+        return False
 
 
