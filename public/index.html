@@ -433,7 +433,9 @@
       $membersMobile.empty();
       list.forEach(m => {
         const $li = $('<li/>').addClass('list-group-item d-flex align-items-center');
-        const isOnline = m.online || onlineUserIds.has(m.id);
+        // Check if user is online: from API response or from Socket.IO online users set
+        // Also check if this is the current user (they should always show as online if connected)
+        const isOnline = m.online || onlineUserIds.has(m.id) || (currentUserId && m.id === currentUserId && socket && socket.connected);
         if(isOnline){
           const $dot = $('<span/>').css({
             'width': '10px',
@@ -604,6 +606,7 @@
         socketConnectionAttempted = false;
         socketConnectionFailed = false;
         console.log('Socket.IO connected successfully');
+        // Connection established, wait for ready and online_users events
       });
       
       socket.on('connect_error', (error) => {
@@ -634,14 +637,19 @@
       socket.on('ready', (data)=>{ 
         currentUserId = data.user_id;
         $meta.text(`Connected as ${data.user_id} (${data.role})`);
-        // Note: online_users event will be sent after ready, so don't loadMembers here
-        // Wait for online_users event to update the list
+        // Add current user to online users set immediately
+        onlineUserIds.add(data.user_id);
+        // Note: online_users event will be sent after ready, which will update the full list
       });
       socket.on('online_users', (data)=>{
-        // Update online users set
+        // Update online users set with complete list
         onlineUserIds.clear();
         if(data.users){
           data.users.forEach(u => onlineUserIds.add(u.id));
+        }
+        // Ensure current user is in the set
+        if(currentUserId){
+          onlineUserIds.add(currentUserId);
         }
         // Reload members to show updated online status
         loadMembers();
@@ -731,7 +739,10 @@
         const data = await res.json();
         if(data.authenticated && data.user){
           currentUserId = data.user.id;
+          // Add current user to online users set immediately (they are logged in)
+          onlineUserIds.add(data.user.id);
           loadRooms(); // Reload rooms to show management buttons
+          loadMembers(); // Load members to show current user as online
           // Only connect Socket.IO if user is authenticated
           ensureSocket();
         } else {
