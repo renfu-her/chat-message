@@ -571,6 +571,13 @@
     function ensureSocket(){
       if(socket) return;
       socket = io('/chat');
+      socket.on('connect_error', (error) => {
+        // Silently handle connection errors (e.g., when not authenticated)
+        console.log('Socket.IO connection error:', error.message);
+      });
+      socket.on('disconnect', (reason) => {
+        console.log('Socket.IO disconnected:', reason);
+      });
       socket.on('ready', (data)=>{ 
         currentUserId = data.user_id;
         $meta.text(`Connected as ${data.user_id} (${data.role})`);
@@ -642,9 +649,7 @@
 
     loadRooms();
     loadMembers();
-    // Auto-connect Socket.IO if logged in to track online status
-    ensureSocket();
-    // Get current user ID from auth endpoint
+    // Get current user ID from auth endpoint and connect Socket.IO only if authenticated
     (async function(){
       try {
         const res = await fetch('/auth/me');
@@ -652,6 +657,8 @@
         if(data.authenticated && data.user){
           currentUserId = data.user.id;
           loadRooms(); // Reload rooms to show management buttons
+          // Only connect Socket.IO if user is authenticated
+          ensureSocket();
         }
       } catch(e){
         // Silently fail
