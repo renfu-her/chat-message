@@ -634,8 +634,8 @@
       socket.on('ready', (data)=>{ 
         currentUserId = data.user_id;
         $meta.text(`Connected as ${data.user_id} (${data.role})`);
-        // Reload members to get online status
-        loadMembers();
+        // Note: online_users event will be sent after ready, so don't loadMembers here
+        // Wait for online_users event to update the list
       });
       socket.on('online_users', (data)=>{
         // Update online users set
@@ -643,14 +643,17 @@
         if(data.users){
           data.users.forEach(u => onlineUserIds.add(u.id));
         }
+        // Reload members to show updated online status
         loadMembers();
       });
       socket.on('user_online', (data)=>{
         onlineUserIds.add(data.user_id);
+        // Update members list to show new online status
         loadMembers();
       });
       socket.on('user_offline', (data)=>{
         onlineUserIds.delete(data.user_id);
+        // Update members list to reflect offline status
         loadMembers();
       });
       socket.on('new_message', (m)=>{ 

@@ -33,10 +33,11 @@ class ChatNamespace(Namespace):
             "email": current_user.email,
             "role": current_user.role,
         }
-        # Broadcast user online status
-        emit("user_online", {"user_id": current_user.id, "name": current_user.name}, broadcast=True, include_self=False)
-        # Send current online users list to the newly connected user
+        # Send current online users list to the newly connected user (includes self)
         emit("online_users", {"users": list(online_users.values())})
+        # Broadcast user online status to other users (exclude self)
+        emit("user_online", {"user_id": current_user.id, "name": current_user.name}, broadcast=True, include_self=False)
+        # Send ready event to confirm connection
         emit("ready", {"user_id": current_user.id, "role": current_user.role})
         return True
 
