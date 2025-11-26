@@ -685,10 +685,11 @@
             socket.emit('join_room', {room_id: roomId});
           }
         }, 500);
-      } else {
-        currentRoomId = roomId;
-        socket.emit('join_room', {room_id: roomId});
+        return; // Don't proceed if socket is not connected
       }
+      // Socket is connected, join room immediately
+      currentRoomId = roomId;
+      socket.emit('join_room', {room_id: roomId});
     }
 
     // Mobile form submit
