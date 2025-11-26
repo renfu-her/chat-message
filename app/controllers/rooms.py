@@ -122,20 +122,25 @@ def leave_room_api(room_id: int):
 @bp.get("/members")
 @login_required
 def list_members():
-    members = User.query.filter_by(role="member").order_by(User.name.asc()).all()
-    from ..services.socketio import online_users
-    online_user_ids = set(online_users.keys())
-    return jsonify([
-        {
-            "id": m.id,
-            "name": m.name,
-            "email": m.email,
-            "image": m.image,
-            "created_at": m.created_at.isoformat(),
-            "online": m.id in online_user_ids,
-        }
-        for m in members
-    ])
+    try:
+        members = User.query.filter_by(role="member").order_by(User.name.asc()).all()
+        from ..services.socketio import online_users
+        online_user_ids = set(online_users.keys())
+        return jsonify([
+            {
+                "id": m.id,
+                "name": m.name or "",
+                "email": m.email or "",
+                "image": m.image or None,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+                "online": m.id in online_user_ids,
+            }
+            for m in members
+        ])
+    except Exception as e:
+        current_app.logger.error(f"Error in /members: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({"error": "Internal server error"}), 500
 
 
 # User room management endpoints

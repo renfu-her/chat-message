@@ -185,3 +185,151 @@
 
 ---
 
+## 2025-11-26 10:57:51
+
+### 502 Bad Gateway 錯誤處理與代碼穩定性改進
+
+#### 問題描述
+- `/rooms` 端點返回 502 Bad Gateway 錯誤
+- `/members` 端點返回 502 Bad Gateway 錯誤
+- `/auth/me` 端點也出現失敗
+- Socket.IO 連接失敗
+- 502 錯誤表示反向代理（Cloudflare）無法連接到後端應用服務器
+
+#### 修正內容
+
+**1. `/members` 端點錯誤處理** (`app/controllers/rooms.py`)
+- 加入完整的 try-except 錯誤處理
+- 處理可能的 None 值（`name`, `email`, `image`, `created_at` 等）
+- 加入資料庫 rollback 機制
+- 記錄錯誤日誌以便除錯
+- 確保所有欄位都有預設值，避免序列化錯誤
+
+**2. `/rooms/<room_id>/messages` 端點錯誤處理** (`app/controllers/messages.py`)
+- 加入完整的 try-except 錯誤處理
+- 處理可能的 None 值（`author`, `created_at` 等）
+- 加入資料庫 rollback 機制
+- 記錄錯誤日誌以便除錯
+
+**3. Socket.IO 全局錯誤處理器** (`app/services/socketio.py`)
+- 添加 `@socketio.on_error_default` 裝飾器
+- 捕獲所有未處理的 Socket.IO 錯誤
+- 記錄錯誤日誌以便除錯
+
+**4. Socket.IO 連接配置改進** (`app/extensions.py`)
+- 添加 `ping_timeout=60` 和 `ping_interval=25`
+- 改善 WebSocket 連接穩定性
+
+#### 502 Bad Gateway 錯誤診斷
+
+**502 錯誤通常表示：**
+1. 後端應用服務器（uWSGI/Flask）沒有運行
+2. 應用服務器崩潰或無法響應
+3. 反向代理無法連接到後端服務器
+4. 應用服務器超時
+
+**診斷步驟：**
+
+1. **檢查應用服務器狀態**
+   ```bash
+   # 檢查 uWSGI 進程是否運行
+   ps aux | grep uwsgi
+   
+   # 檢查 uWSGI PID 文件
+   cat /tmp/uwsgi.pid
+   
+   # 檢查 uWSGI 日誌
+   tail -f /tmp/uwsgi.log
+   ```
+
+2. **檢查應用服務器配置**
+   - 確認 uWSGI 配置正確
+   - 確認應用服務器監聽的端口與反向代理配置一致
+   - 確認 Cloudflare/Nginx 正確配置了後端代理
+
+3. **重啟應用服務器**
+   ```bash
+   # 如果使用 uWSGI
+   touch /tmp/uwsgi.reload
+   
+   # 或完全重啟
+   pkill -f uwsgi
+   uwsgi --ini uwsgi.ini
+   ```
+
+4. **檢查應用日誌**
+   - 查看應用程式日誌以確認是否有未處理的異常
+   - 檢查資料庫連接是否正常
+   - 確認所有依賴服務（MySQL）都在運行
+
+#### 技術細節
+
+**問題原因：**
+1. 缺少錯誤處理可能導致應用崩潰
+2. 未處理的異常可能導致整個應用服務器無響應
+3. 資料庫查詢錯誤可能導致應用掛起
+4. None 值序列化錯誤可能導致應用崩潰
+
+**解決方案：**
+1. 為所有關鍵端點加入完整的錯誤處理
+2. 確保所有資料庫操作都有 rollback 機制
+3. 處理可能的 None 值，避免序列化錯誤
+4. 添加全局錯誤處理器捕獲未處理的異常
+5. 改善 Socket.IO 連接配置以提升穩定性
+
+#### 影響範圍
+- 提升應用程式穩定性
+- 避免因未處理異常導致應用崩潰
+- 改善錯誤診斷能力
+- 減少 502 錯誤的發生
+- 改善 WebSocket 連接穩定性
+
+#### 相關檔案
+- `app/controllers/rooms.py` - `/members` 端點錯誤處理
+- `app/controllers/messages.py` - 訊息端點錯誤處理
+- `app/services/socketio.py` - Socket.IO 全局錯誤處理器
+- `app/extensions.py` - Socket.IO 連接配置
+
+#### 使用者操作 (User Commands)
+
+**應用此修正後，建議執行以下操作：**
+
+1. **檢查服務器狀態**
+   ```bash
+   # 檢查 uWSGI 是否運行
+   ps aux | grep uwsgi
+   
+   # 檢查日誌
+   tail -50 /tmp/uwsgi.log
+   ```
+
+2. **重啟應用服務器**
+   ```bash
+   # 方法 1: 使用 touch-reload
+   touch /tmp/uwsgi.reload
+   
+   # 方法 2: 完全重啟
+   pkill -f uwsgi
+   uwsgi --ini uwsgi.ini
+   ```
+
+3. **檢查資料庫連接**
+   ```bash
+   # 確認 MySQL 服務運行
+   systemctl status mysql
+   # 或
+   service mysql status
+   ```
+
+4. **測試端點**
+   - 測試 `/auth/me`：應返回認證狀態
+   - 測試 `/rooms`：應返回房間列表
+   - 測試 `/members`：應返回成員列表
+   - 測試 Socket.IO 連接：檢查是否正常連接
+
+5. **監控日誌**
+   - 持續監控應用日誌以確認錯誤是否解決
+   - 檢查是否有新的錯誤訊息
+
+---
+
