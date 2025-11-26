@@ -568,37 +568,60 @@
       msgs.forEach(m => appendMessage(m));
     }
 
+    let socketConnectionAttempted = false;
+    let socketConnectionFailed = false;
+
     function ensureSocket(){
-      if(socket) return;
+      // Don't attempt if already connected or if previous attempt failed
+      if(socket && socket.connected) return;
+      if(socketConnectionFailed) return;
+      
+      // Prevent multiple simultaneous connection attempts
+      if(socketConnectionAttempted && socket && !socket.connected) {
+        return;
+      }
+      
+      socketConnectionAttempted = true;
+      
       // Configure Socket.IO to send cookies/credentials for session management
+      // Disable automatic reconnection - we'll handle it manually based on auth status
       socket = io('/chat', {
         withCredentials: true,
         transports: ['polling', 'websocket'],
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5
+        reconnection: false,  // Disable auto-reconnection to prevent repeated failures
+        timeout: 10000
       });
+      
+      socket.on('connect', () => {
+        socketConnectionAttempted = false;
+        socketConnectionFailed = false;
+        console.log('Socket.IO connected successfully');
+      });
+      
       socket.on('connect_error', (error) => {
-        // Silently handle connection errors (e.g., when not authenticated or invalid session)
-        console.log('Socket.IO connection error:', error.message);
-        // If session is invalid, try to reconnect after a short delay
-        if(error.message && error.message.includes('Invalid session')) {
-          setTimeout(() => {
-            if(socket && !socket.connected) {
-              socket.disconnect();
-              socket = null;
-              // Re-check authentication before reconnecting
-              fetch('/auth/me').then(res => res.json()).then(data => {
-                if(data.authenticated) {
-                  ensureSocket();
-                }
-              }).catch(() => {});
-            }
-          }, 2000);
+        socketConnectionAttempted = false;
+        socketConnectionFailed = true;
+        
+        // Silently handle connection errors - don't spam console
+        const errorMsg = error.message || '';
+        // Disconnect and clean up on any connection error
+        if(socket) {
+          socket.removeAllListeners(); // Remove all event listeners
+          socket.disconnect();
+          socket = null;
         }
+        
+        // Don't retry automatically - wait for explicit user action or auth check
+        // Suppress common session/auth errors to reduce console noise
+        // These are expected when user is not authenticated
       });
+      
       socket.on('disconnect', (reason) => {
-        console.log('Socket.IO disconnected:', reason);
+        socketConnectionAttempted = false;
+        // Only log if not a transport error (which is expected after connection failure)
+        if(reason !== 'transport error') {
+          console.log('Socket.IO disconnected:', reason);
+        }
       });
       socket.on('ready', (data)=>{ 
         currentUserId = data.user_id;
@@ -650,9 +673,22 @@
     }
 
     function joinSocketRoom(roomId){
-      ensureSocket();
-      currentRoomId = roomId;
-      socket.emit('join_room', {room_id: roomId});
+      if(!socket || !socket.connected) {
+        // Only try to connect if not already connected and not failed
+        if(!socketConnectionFailed) {
+          ensureSocket();
+        }
+        // Wait a bit for connection, then emit
+        setTimeout(() => {
+          if(socket && socket.connected) {
+            currentRoomId = roomId;
+            socket.emit('join_room', {room_id: roomId});
+          }
+        }, 500);
+      } else {
+        currentRoomId = roomId;
+        socket.emit('join_room', {room_id: roomId});
+      }
     }
 
     // Mobile form submit
