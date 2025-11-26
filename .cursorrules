@@ -1,0 +1,172 @@
+# Cursor Rules for Flask Chat Application
+
+## Project Overview
+This is a Flask-based real-time chat application using Flask-SocketIO, MySQL, and WebSocket technology.
+
+## Technology Stack
+- Backend: Flask 3.0.3, Flask-SocketIO 5.3.6, SQLAlchemy, Flask-Login
+- Database: MySQL with PyMySQL
+- Frontend: jQuery, Bootstrap 5, Socket.IO client
+- Image Processing: Pillow (PIL) for WebP conversion
+- Authentication: Flask-Login with bcrypt password hashing
+
+## Code Style & Conventions
+
+### Python
+- Use type hints where appropriate
+- Follow PEP 8 style guide
+- Use Flask blueprints for route organization
+- SQLAlchemy models in `app/models/`
+- Controllers in `app/controllers/`
+- Services in `app/services/`
+- Use `current_user` from Flask-Login for authentication checks
+- Always use `@login_required` decorator for protected routes
+- Use `db.session.commit()` after database modifications
+- Handle exceptions and rollback on errors
+
+### Frontend
+- Use jQuery for DOM manipulation
+- Bootstrap 5 for UI components
+- Socket.IO client for real-time communication
+- Use async/await for API calls
+- Always handle errors in try-catch blocks
+- Use English for all user-facing text
+- Use Font Awesome icons
+
+### Database
+- All tables auto-created via `db.create_all()`
+- Use migrations for schema changes when possible
+- Foreign keys: `user_id`, `room_id` follow naming convention
+- Timestamps: `created_at` for all tables
+- Use `is_active` flag for soft deletes
+
+## Key Features
+
+### Room Types
+- **Public rooms**: Visible to all authenticated users
+- **Private rooms**: Visible only to creator, admins, and members
+- Private rooms can have password protection
+- Each room has unique `room_no` for invitation links
+
+### Authentication
+- Session-based authentication with Flask-Login
+- Password hashing with bcrypt (12 rounds)
+- User roles: `admin`, `member`
+- Profile image upload (converted to WebP, stored in `assets/uploads`)
+
+### Socket.IO
+- Namespace: `/chat`
+- Events: `join_room`, `leave_room`, `send_message`, `typing`, `admin_broadcast`
+- Only authenticated users can connect
+- Use `_room_key(room_id)` for room names
+- **Important**: Socket.IO connection should only be established after user authentication is confirmed
+- Handle "Invalid session" errors gracefully with reconnection logic
+
+## File Organization
+
+### Backend Structure
+```
+app/
+├── __init__.py          # App factory, DB initialization
+├── config.py            # Configuration (from .env)
+├── extensions.py        # Flask extensions (db, socketio, login_manager)
+├── controllers/         # Route handlers (blueprints)
+│   ├── auth.py          # Authentication routes
+│   ├── rooms.py         # Room management
+│   ├── messages.py      # Message handling
+│   └── main.py          # Main routes, file serving
+├── models/              # SQLAlchemy models
+│   ├── user.py
+│   ├── room.py
+│   ├── message.py
+│   └── membership.py
+└── services/            # Business logic
+    └── socketio.py      # Socket.IO event handlers
+```
+
+### Frontend Structure
+```
+public/
+├── app.html             # Base template
+├── index.html           # Main chat interface
+├── auth/
+│   ├── login.html       # Login/Register page
+│   └── profile.html     # User profile page
+└── rooms/
+    └── join.html        # Join room by room_no page
+```
+
+## Important Patterns
+
+### Error Handling
+- Return JSON with `{"error": "message"}` for API errors
+- Use appropriate HTTP status codes (400, 401, 404, 500)
+- Log errors with `current_app.logger`
+- Always rollback database session on exceptions
+
+### Security
+- Validate all user inputs
+- Use `@login_required` for protected routes
+- Check user permissions (admin, room owner) before actions
+- Hash passwords with bcrypt
+- Validate file uploads (type, size)
+- Prevent path traversal in file serving
+
+### Socket.IO Connection
+- **Critical**: Only connect Socket.IO after confirming user authentication via `/auth/me`
+- Use `withCredentials: true` for cookie-based sessions
+- Handle connection errors gracefully, especially "Invalid session" errors
+- Implement reconnection logic for temporary failures
+- Check authentication status before attempting reconnection
+
+## Common Tasks
+
+### Adding a New Route
+1. Create handler in appropriate controller file
+2. Register blueprint in `app/__init__.py`
+3. Add `@login_required` if needed
+4. Return JSON for API endpoints
+5. Use `render_template` for HTML pages
+
+### Adding a New Model
+1. Create model class in `app/models/`
+2. Import in `app/models/__init__.py`
+3. Import in `app/__init__.py` for auto-creation
+4. Add relationships if needed
+
+### Adding Socket.IO Events
+1. Add handler method in `ChatNamespace` class
+2. Use `current_user` for authentication
+3. Emit events to appropriate rooms
+4. Handle errors gracefully
+
+## Environment Variables (.env)
+- `SECRET_KEY`: Flask secret key
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`: Database config
+- `SESSION_COOKIE_SECURE`: Set to `true` for HTTPS
+- `MAIL_*`: Email configuration for feedback notifications
+
+## Known Issues & Solutions
+
+### Socket.IO "Invalid session" Error
+- **Cause**: Session validation failure in Engine.IO layer
+- **Solution**: 
+  - Ensure Socket.IO only connects after authentication confirmation
+  - Use `withCredentials: true` in client configuration
+  - Implement proper error handling and reconnection logic
+  - Check that session cookies are being sent correctly
+
+## Testing Considerations
+- Test with authenticated and unauthenticated users
+- Test public and private room access
+- Test Socket.IO connection with valid/invalid sessions
+- Test password-protected private rooms
+- Test file uploads (image conversion to WebP)
+
+## Notes
+- Always respond in English for code and comments
+- Use Traditional Chinese for user-facing documentation (BLOG.md, CHANGED.md)
+- Keep error messages in English for API responses
+- Use UUID7 for unique identifiers (with fallback if library unavailable)
+- Image uploads: Convert to WebP, save to `assets/uploads`, name with UUID7
+
