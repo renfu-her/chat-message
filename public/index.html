@@ -617,9 +617,18 @@
         const errorMsg = error.message || '';
         // Disconnect and clean up on any connection error
         if(socket) {
-          socket.removeAllListeners(); // Remove all event listeners
-          socket.disconnect();
-          socket = null;
+          try {
+            // Remove all event listeners first
+            socket.removeAllListeners();
+            // Disconnect gracefully
+            if(socket.connected) {
+              socket.disconnect();
+            }
+          } catch(e) {
+            // Ignore errors during cleanup
+          } finally {
+            socket = null;
+          }
         }
         
         // Don't retry automatically - wait for explicit user action or auth check
@@ -630,8 +639,16 @@
       socket.on('disconnect', (reason) => {
         socketConnectionAttempted = false;
         // Only log if not a transport error (which is expected after connection failure)
-        if(reason !== 'transport error') {
+        if(reason !== 'transport error' && reason !== 'io server disconnect') {
           console.log('Socket.IO disconnected:', reason);
+        }
+        // Clean up if needed
+        if(socket && !socket.connected) {
+          try {
+            socket.removeAllListeners();
+          } catch(e) {
+            // Ignore cleanup errors
+          }
         }
       });
       socket.on('ready', (data)=>{ 

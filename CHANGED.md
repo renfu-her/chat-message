@@ -416,3 +416,85 @@
 
 ---
 
+## 2025-11-26 (最新修正)
+
+### WebSocket 錯誤處理改進與在線狀態顯示修正
+
+#### 問題描述
+- 已登入用戶（tester）沒有顯示綠燈（在線狀態指示器）
+- WebSocket 無法連線
+- `websocket.js` 出現錯誤（`doClose()` 函數中的 `this.ws.close()` 警告）
+
+#### 修正內容
+
+**1. 在線狀態顯示修正** (`public/index.html`)
+- 在認證檢查成功後，立即將當前用戶添加到 `onlineUserIds` 集合
+- 在 `ready` 事件中，立即將當前用戶標記為在線
+- 在 `renderMembers` 中，如果當前用戶已連接 Socket.IO，也顯示為在線
+- 確保當前用戶在 `online_users` 事件中也被包含
+- 在認證成功後立即載入成員列表，顯示當前用戶為在線
+
+**2. WebSocket 連接錯誤處理改進** (`public/index.html`)
+- 改進 `connect_error` 事件處理，使用 try-catch 包裝清理操作
+- 在斷開連接前檢查 `socket.connected` 狀態
+- 改進 `disconnect` 事件處理，添加清理邏輯
+- 避免在清理過程中出現錯誤
+
+**3. 事件順序調整** (`app/services/socketio.py`)
+- 調整事件發送順序：先發送 `online_users`（包含當前用戶），再廣播 `user_online`
+- 確保新連接的用戶能立即收到完整的在線用戶列表
+
+#### 技術細節
+
+**問題原因：**
+1. 當前用戶沒有被添加到 `onlineUserIds` 集合，導致不顯示綠燈
+2. 成員列表在收到在線用戶列表之前就渲染了
+3. WebSocket 清理過程中可能出現錯誤，導致 `websocket.js` 警告
+
+**解決方案：**
+1. 在認證成功後立即將當前用戶標記為在線
+2. 在 Socket.IO 連接成功後立即更新在線狀態
+3. 改進 WebSocket 清理邏輯，避免錯誤
+4. 調整事件順序，確保在線狀態正確更新
+
+#### 影響範圍
+- 已登入用戶現在會正確顯示綠燈（在線狀態）
+- 改善 WebSocket 連接穩定性
+- 減少 WebSocket 清理錯誤
+- 提升用戶體驗
+
+#### 相關檔案
+- `public/index.html` - 前端在線狀態顯示和 WebSocket 錯誤處理
+- `app/services/socketio.py` - 後端事件順序調整
+
+#### 使用者操作 (User Commands)
+
+**應用此修正後，建議執行以下操作：**
+
+1. **清除瀏覽器快取和 Cookie**
+   - 按 `Ctrl + Shift + Delete` (Windows) 或 `Cmd + Shift + Delete` (Mac)
+   - 選擇清除快取和 Cookie
+   - 或使用無痕模式測試
+
+2. **重新載入應用程式**
+   - 如果使用開發模式：重新啟動 Flask 應用
+     ```bash
+     python wsgi.py
+     ```
+   - 如果使用 uWSGI 生產模式：重新載入 uWSGI
+     ```bash
+     touch /tmp/uwsgi.reload
+     ```
+
+3. **測試在線狀態顯示**
+   - 登入系統後，檢查成員列表
+   - 當前用戶應該顯示綠燈（在線狀態指示器）
+   - 其他在線用戶也應該顯示綠燈
+
+4. **測試 WebSocket 連接**
+   - 檢查控制台是否還有 WebSocket 錯誤
+   - 確認 Socket.IO 連接成功
+   - 確認在線狀態正確更新
+
+---
+
